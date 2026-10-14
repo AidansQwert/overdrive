@@ -33,6 +33,7 @@
 #include "video_api.hpp"
 #include "layouts.h"
 #include "video_output.hpp"
+#include "usb_keyboard.hpp"
 #include "video_frame.hpp"
 #include "filesystem_access.hpp"
 #include <unistd.h>
@@ -335,6 +336,13 @@ bool touch(bool down, float x, float y) {
   return call_input("__ps5ReactTouch", 2, args);
 }
 
+// A USB keyboard's typed characters ("text") or editing key ("key"), input protocol v6.
+bool keyboard(const char* type, const char* value) {
+  JSContext* ctx = er_runtime_context();
+  JSValue args[2] = {JS_NewString(ctx, type), JS_NewString(ctx, value)};
+  return call_input("__ps5ReactKeyboard", 2, args);
+}
+
 // Display.setRefreshRate: the rate can change only while EGL is terminated (ps5_opengl_display_modes.h),
 // so the presenter's GL objects go with the context and are made again. The engine framebuffer is CPU
 // memory and survives; the presenter's first draw uploads all of it.
@@ -355,6 +363,7 @@ bool switch_refresh_rate(hui::ps5::Display& display, GlPresenter& presenter, con
 bool run_proof() {
   hui::ps5::Display display;
   hui::ps5::Pad pad;
+  usb_keyboard::Session usb_keys;
   GlPresenter presenter;
   hui::InputTracker tracker;
   hui::PadSample samples[64];
@@ -418,6 +427,7 @@ bool run_proof() {
   if (ok) {
     async_log::write("[PS5-REACT] pad=%d at %lldms", pad.open(), since_launch_ms());
     host_platform_set_pad(&pad);
+    async_log::write("[PS5-REACT] usb keyboard=%d", usb_keys.open());
   }
   if (ok) {
     images::set_cache_bytes(image_cache_bytes());
@@ -548,6 +558,7 @@ bool run_proof() {
       const bool touch_down = host_platform_read_touch(&touch_x, &touch_y);
       if (ok && (touch_down || touched)) ok = touch(touch_down, touch_x, touch_y);
       touched = touch_down;
+      if (ok) ok = usb_keys.poll(now, keyboard);
       commands.poll(now, script);
       if (const char* action = ok ? script.next(static_cast<std::uint64_t>(now / 1000)) : nullptr) {
         async_log::write("[PS5-REACT] script: %s", action);

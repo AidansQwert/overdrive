@@ -3,14 +3,17 @@
 // Additional attribution term: see LICENSE-ATTRIBUTION.
 const listeners = new Set();
 const touchListeners = new Set();
+const keyboardListeners = new Set();
 
-// Actions as strings, touch samples as [x, y] (x null when the finger lifts), in arrival order.
+// Actions as strings, touch samples as [x, y] (x null when the finger lifts), keyboard input as
+// {type, value}, in arrival order.
 const pending = [];
 
 function deliver() {
   for (const item of pending.splice(0)) {
     if (typeof item === 'string') for (const listener of listeners) listener(item);
-    else for (const listener of touchListeners) listener(item[0], item[1]);
+    else if (Array.isArray(item)) for (const listener of touchListeners) listener(item[0], item[1]);
+    else for (const listener of keyboardListeners) listener(item);
   }
 }
 
@@ -28,6 +31,14 @@ globalThis.__ps5ReactDispatch = action => {
 // and (null) once when it lifts. The focus runtime turns its travel into moves (focus/touch.js).
 globalThis.__ps5ReactTouch = (x, y) => {
   if (pending.push([x ?? null, y ?? null]) === 1) Promise.resolve().then(deliver);
+};
+
+// Input protocol v6: a USB keyboard on the PS5 host, as ('text', characters) for what was typed and
+// ('key', name) for Backspace, Enter, Escape and Tab. The keys reach only keyboard listeners, never
+// the focus runtime, so a keyboard types into fields without moving focus.
+globalThis.__ps5ReactKeyboard = (type, value) => {
+  if (type !== 'text' && type !== 'key') return;
+  if (pending.push({type, value: String(value)}) === 1) Promise.resolve().then(deliver);
 };
 
 /**
@@ -52,4 +63,18 @@ export function subscribeInput(listener) {
 export function subscribeTouch(listener) {
   touchListeners.add(listener);
   return () => { touchListeners.delete(listener); };
+}
+
+/**
+ * Keyboard input: `text` carries typed characters, `key` names an editing key.
+ * @typedef {{type: 'text', value: string} | {type: 'key', value: 'Backspace' | 'Enter' | 'Escape' | 'Tab'}} KeyboardInput
+ */
+
+/**
+ * Internal: receive keyboard input until the returned function is called.
+ * @param {(input: KeyboardInput) => void} listener
+ */
+export function subscribeKeyboard(listener) {
+  keyboardListeners.add(listener);
+  return () => { keyboardListeners.delete(listener); };
 }

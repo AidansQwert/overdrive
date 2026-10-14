@@ -1,5 +1,6 @@
 // ../pub-game-store/native/search/Keyboard.jsx
 // reconstructed from the esbuild bundle in eboot.bin
+// MODIFIED: a USB keyboard types into the field too.
 
 import '../assets/Inter-Regular.ttf';
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
@@ -10,7 +11,7 @@ import { ButtonGlyph } from '../ui/ButtonHints.jsx';
 import { Icon } from '../ui/Icon.jsx';
 import { HINT, useHints } from '../ui/Legend.jsx';
 import { colors } from '../ui/colors.js';
-import { FocusScope, Text, View, motion, useIsFocused } from '@ps5-react/core';
+import { FocusScope, Text, View, motion, useIsFocused, useKeyboardInput } from '@ps5-react/core';
 
   var COLUMNS2 = 6;
   var LTR2 = { direction: "ltr" };
@@ -56,6 +57,13 @@ import { FocusScope, Text, View, motion, useIsFocused } from '@ps5-react/core';
       (value) => value === "case" ? setUpper((value2) => !value2) : value === "done" ? onSubmit() : onChange((query) => edit(query, value, url ? 8192 : MAX_QUERY)),
       [onChange, onSubmit, url]
     );
+    // A USB keyboard types straight into the field: characters as if their keys were pressed here,
+    // Backspace deletes and Enter submits. The on-screen keys and the controller work as before.
+    useKeyboardInput((input) => {
+      if (input.type === "text") for (const character of input.value) onKey(character);
+      else if (input.value === "Backspace") onKey("delete");
+      else if (input.value === "Enter") onKey("done");
+    });
     const onAction = (action) => {
       if (action === "square") onKey("delete");
       else if (action === "triangle" && !url) onKey(" ");

@@ -5,7 +5,7 @@
 
 #include <cstddef>
 
-// Input actions (input protocol v5, see runtime/js/input.js): what hosts pass to
+// Input actions (input protocol v6, see runtime/js/input.js): what hosts pass to
 // globalThis.__ps5ReactDispatch and input scripts accept. runtime/js/input.js names the same actions
 // for JavaScript. Options reaches the app as `options`; the PS button leaves.
 enum class HostAction : unsigned char { up, down, left, right, confirm, back, l1, r1, l2, r2, triangle, square, options };
