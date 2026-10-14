@@ -6,6 +6,12 @@
 </p>
 
 <p align="center">
+  <b>English</b> ·
+  <a href="README.ru.md">Русский</a>
+</p>
+
+
+<p align="center">
   <b>Your PS5 game store.</b><br>
   Back from the dead, rebuilt from its own binary, with every line of source in the open.
 </p>
