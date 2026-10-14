@@ -1,13 +1,13 @@
 <p align="center">
-  <a href="README.md">English</a> ·
-  <b>Русский</b>
-</p>
-
-<p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/readme/logo-dark.svg">
     <img src=".github/readme/logo-light.svg" alt="Overdrive" width="440">
   </picture>
+</p>
+
+<p align="center">
+  <a href="README.md">English</a> ·
+  <b>Русский</b>
 </p>
 
 <p align="center">
@@ -54,7 +54,7 @@
 ## Установка в четыре шага
 
 <p align="center">
-  <img src=".github/readme/install-steps.ru.jpg" alt="1 Скачайте Overdrive.exfat · 2 Скопируйте его в папку homebrew на USB-накопителе · 3 Вставьте накопитель: ShadowMount+ установит его · 4 Играйте" width="100%">
+  <img src=".github/readme/install-steps.ru.svg" alt="1 Скачайте Overdrive.exfat · 2 Скопируйте его в папку homebrew на USB-накопителе · 3 Вставьте накопитель: ShadowMount+ установит его · 4 Играйте" width="100%">
 </p>
 
 ### Перед началом
