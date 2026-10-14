@@ -101,8 +101,12 @@ bool resolve_calls() {
     if (!function) async_log::write("[PS5-REACT] keyboard: %s unavailable from %s", name, kModule);
     return function != nullptr;
   };
-  const bool found = find(calls.init, "sceKeyboardInit") & find(calls.open, "sceKeyboardOpen") &
-                     find(calls.read_state, "sceKeyboardReadState") & find(calls.close, "sceKeyboardClose");
+  // Every lookup runs, so the log names each missing call.
+  const bool has_init = find(calls.init, "sceKeyboardInit");
+  const bool has_open = find(calls.open, "sceKeyboardOpen");
+  const bool has_read = find(calls.read_state, "sceKeyboardReadState");
+  const bool has_close = find(calls.close, "sceKeyboardClose");
+  const bool found = has_init && has_open && has_read && has_close;
   if (!found) calls = {};
   return found;
 }
