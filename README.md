@@ -217,7 +217,8 @@ What a bundler throws away could not come back: most comments, the JSX syntax (i
 <br>
 
 Every push builds on `ubuntu-24.04` with clang 18 and uploads `Overdrive.exfat` as a workflow
-artifact; a `v*` tag also publishes a release with `Overdrive.exfat` and `update.zip`.
+artifact. **Run workflow** builds the same and puts `Overdrive.exfat` and `update.zip` in a
+draft release named after `app/version.js`, which only maintainers can see.
 
 The same build locally, on any Linux with the packages the workflow installs (`clang-18`,
 `llvm-18`, `cmake`, `ninja-build`, `nodejs`, `npm`, `zlib1g-dev`, `build-essential`,
@@ -237,7 +238,8 @@ because macOS is its supported development environment.
 
 The image is a plain exFAT volume whose root is the app folder, with 64 KiB clusters and the
 label `OVERDRIVE`. To release a new version, raise the version in `app/version.js` and
-`app/app.json` and push a `v*` tag: installed apps offer it on their next start.
+`app/app.json`, run the workflow, test the draft's image on a console, then publish the draft:
+that creates its tag, and installed apps offer exactly the tested files on their next start.
 
 </details>
 

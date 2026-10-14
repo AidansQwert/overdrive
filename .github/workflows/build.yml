@@ -1,9 +1,11 @@
 name: build
 
+# A push to main checks that the app still builds. A release starts from Run workflow, which
+# puts the build in a draft release; publishing that draft creates its tag, and no build runs on
+# tags, so players get the very files that were tested.
 on:
   push:
     branches: [main]
-    tags: ["v*"]
     # A push that only touches the README, its images or the issue forms has nothing to build.
     paths-ignore:
       - "README.md"
@@ -79,12 +81,31 @@ jobs:
             ps5-react/dist/PPSA99058.receipt.json
           if-no-files-found: error
 
-      - name: Release
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Draft release
+        # Only people with write access see a draft, and the in-app update feed
+        # (releases/latest) never returns one, so a test build reaches nobody else.
+        # The draft is named after app/version.js; building again replaces its files
+        # and moves it to this commit. A version already published is left alone.
+        if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          version=$(sed -n 's/.*var VERSION = "\([^"]*\)".*/\1/p' app/version.js)
+          test -n "$version" || { echo "no VERSION in app/version.js" >&2; exit 1; }
+          tag="v$version"
           assets="Overdrive.exfat update.zip"
-          gh release create "$GITHUB_REF_NAME" $assets \
-            --title "Overdrive $GITHUB_REF_NAME" --generate-notes \
-          || gh release upload "$GITHUB_REF_NAME" $assets --clobber
+          draft=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"$tag\") | .draft")
+          case "$draft" in
+            "")
+              gh release create "$tag" $assets --draft --target "$GITHUB_SHA" \
+                --title "Overdrive $tag" --notes "Test build of $GITHUB_SHA." ;;
+            true)
+              gh release edit "$tag" --target "$GITHUB_SHA" --notes "Test build of $GITHUB_SHA."
+              gh release upload "$tag" $assets --clobber ;;
+            *)
+              echo "$tag is already published: raise the version in app/version.js" >&2
+              exit 1 ;;
+          esac
+          gh release view "$tag" --json isDraft,tagName,assets \
+            --jq '"\(.tagName) draft=\(.isDraft) " + ([.assets[] | "\(.name) \(.size)"] | join(", "))'
