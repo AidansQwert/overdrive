@@ -10,7 +10,6 @@
   <a href="README.ru.md">Русский</a>
 </p>
 
-
 <p align="center">
   <b>Your PS5 game store.</b><br>
   Back from the dead, rebuilt from its own binary, with every line of source in the open.
@@ -222,9 +221,9 @@ What a bundler throws away could not come back: most comments, the JSX syntax (i
 <summary><b>Building</b></summary>
 <br>
 
-Every push builds on `ubuntu-24.04` with clang 18 and uploads `Overdrive.exfat` as a workflow
-artifact. **Run workflow** builds the same and puts `Overdrive.exfat` and `update.zip` in a
-draft release named after `app/version.js`, which only maintainers can see.
+Builds run on `ubuntu-24.04` with clang 18, only from **Run workflow**: a push builds nothing.
+Each run puts `Overdrive.exfat` and `update.zip` in a draft release named after
+`app/version.js`, which only maintainers can see.
 
 The same build locally, on any Linux with the packages the workflow installs (`clang-18`,
 `llvm-18`, `cmake`, `ninja-build`, `nodejs`, `npm`, `zlib1g-dev`, `build-essential`,

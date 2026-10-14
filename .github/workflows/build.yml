@@ -1,16 +1,9 @@
 name: build
 
-# A push to main checks that the app still builds. A release starts from Run workflow, which
-# puts the build in a draft release; publishing that draft creates its tag, and no build runs on
-# tags, so players get the very files that were tested.
+# Builds run only from Run workflow: a push builds nothing. Each run puts its build in a draft
+# release; publishing that draft creates its tag, and no build runs on tags, so players get the
+# very files that were tested.
 on:
-  push:
-    branches: [main]
-    # A push that only touches the README, its images or the issue forms has nothing to build.
-    paths-ignore:
-      - "README.md"
-      - ".github/readme/**"
-      - ".github/ISSUE_TEMPLATE/**"
   workflow_dispatch:
 
 permissions:
