@@ -1,6 +1,7 @@
 // ../pub-game-store/native/state/download-queue.js
 // reconstructed from the esbuild bundle in eboot.bin
 // MODIFIED: an Archive.org refusal fails over or fails as a dead link instead of asking for the browser.
+// MODIFIED: an archive the catalog's password doesn't open is tried with the known release passwords.
 
 import { INCOMPLETE_PART, STALE_PARTIAL, cause } from '../downloads/errors.js';
 import { t } from '../i18n/core.js';
@@ -17,6 +18,13 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
   var ADOPTED = "A partial download from another source holds this name. Resume it from its original source, or delete it in Files.";
   var DELETED = "Its partial files were deleted. Restart to download it again, or remove it.";
   var REMOVAL_CUT = "The app closed while deleting its files. Delete it again.";
+  // The passwords the catalog's archives are published with. Some entries name none or the wrong one,
+  // so after the catalog's own (or none) these are tried in turn. A wrong or missing password is caught
+  // on the archive's headers before anything is written ("RAR archive password is missing.",
+  // "Incorrect RAR archive password.", "Incorrect RAR5 archive password."), and a failed attempt leaves
+  // no staging behind, so each one costs a moment. They are checked on the console: nothing counts them.
+  var KNOWN_PASSWORDS = ["DLPSGAME.COM", "[DLPSGAME.COM]", "www.DLPSGAME.COM", "SuperPSX", "downloadgameps3.com", "hako"];
+  var PASSWORD_FAILURE = /archive password|passphrase/i;
   function durable(fs, stateDir2) {
     try {
       fs.mkdir(stateDir2, { recursive: true });
@@ -480,7 +488,8 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
           const outcome = await streamed.done;
           off();
           if (outcome.error && (job2.state === "pausing" || job2.cancelling)) throw outcome.error;
-          if (outcome.error && !STREAM_FAILURE.test(cause(outcome.error.message))) throw outcome.error;
+          // A password the stream couldn't use gets the known ones below, once every volume is here.
+          if (outcome.error && !STREAM_FAILURE.test(cause(outcome.error.message)) && !PASSWORD_FAILURE.test(cause(outcome.error.message))) throw outcome.error;
           if (outcome.error) {
             console.log("[download-queue] extraction during download stopped, extracting again:", outcome.error.message);
             job2.written = 0;
@@ -493,13 +502,24 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
         if (!result) {
           if (!fs.exists(job2.output) && fs.diskUsage(job2.root).free < (estimate || 0) + MARGIN2)
             throw new Error("Not enough space to extract this download. Free space and retry.");
-          const task = archives.extract(options);
-          active2.task = task;
-          const off = task.subscribe(follow);
-          try {
-            result = await task.done;
-          } finally {
-            off();
+          const { password: listed, ...unlocked } = options;
+          const passwords = [listed, ...KNOWN_PASSWORDS.filter((password) => password !== listed)];
+          for (let index = 0; !result; index++) {
+            const task = archives.extract(passwords[index] === void 0 ? unlocked : { ...unlocked, password: passwords[index] });
+            active2.task = task;
+            const off = task.subscribe(follow);
+            try {
+              result = await task.done;
+            } catch (error2) {
+              const last = index + 1 >= passwords.length;
+              if (last || job2.state === "pausing" || job2.cancelling || !PASSWORD_FAILURE.test(cause(error2.message))) throw error2;
+              console.log(`[download-queue] archive password ${index + 1} of ${passwords.length} did not open it, trying the next`);
+              job2.written = 0;
+              sample = { at: Date.now(), bytes: 0 };
+              emit2();
+            } finally {
+              off();
+            }
           }
         }
       } catch (error2) {
