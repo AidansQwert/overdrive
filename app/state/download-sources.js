@@ -1,5 +1,6 @@
 // ../pub-game-store/native/state/download-sources.js
 // reconstructed from the esbuild bundle in eboot.bin
+// MODIFIED: archiveRefusal, so an Archive.org 401/403 is a dead link, not a browser check.
 
 
   function webURL(value) {
@@ -15,6 +16,17 @@
     datanodes: ["datanodes.to"]
   };
   var isHost = (host2, domain) => host2 === domain || host2.endsWith(`.${domain}`);
+  // Archive.org answers 401 for a restricted item and 403 for one taken down. Neither is a
+  // check a browser can pass: a login there gives the app no access, it only stays in the
+  // console's browser. The status, when it is that refusal, else null.
+  function archiveRefusal(release, message) {
+    try {
+      if (!isHost(webURL(release.browserUrl || release.url).host, "archive.org")) return null;
+    } catch {
+      return null;
+    }
+    return /\bHTTP (401|403)\b/.exec(message)?.[1] ?? null;
+  }
   function sourceKind(release) {
     if (release.manifestUrl) return "manifest";
     const value = release.browserUrl || release.url;
@@ -111,4 +123,4 @@
     } };
   }
 
-export { BrowserRequired, cancellation, createSourceResolver, sourceKind, webURL };
+export { archiveRefusal, BrowserRequired, cancellation, createSourceResolver, sourceKind, webURL };

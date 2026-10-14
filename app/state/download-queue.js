@@ -1,10 +1,11 @@
 // ../pub-game-store/native/state/download-queue.js
 // reconstructed from the esbuild bundle in eboot.bin
+// MODIFIED: an Archive.org refusal fails over or fails as a dead link instead of asking for the browser.
 
 import { INCOMPLETE_PART, STALE_PARTIAL, cause } from '../downloads/errors.js';
 import { t } from '../i18n/core.js';
 import { archivePassword } from './archive-password.js';
-import { BrowserRequired, cancellation, createSourceResolver, sourceKind, webURL } from './download-sources.js';
+import { BrowserRequired, archiveRefusal, cancellation, createSourceResolver, sourceKind, webURL } from './download-sources.js';
 import { readJSON } from './read-json.js';
 import { mountedImages, shadowRequest, within2 } from './shadowmount.js';
 import { MARGIN2, spaceShortfall, stillNeeded } from './space.js';
@@ -307,7 +308,11 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
         if (job2.state === "installer-required" && canInstall()) await install(job2);
       } catch (error2) {
         console.log("[download-queue] transfer stopped:", error2.message);
-        const browser = error2 instanceof BrowserRequired || /browser verification required/i.test(cause(error2.message));
+        // The engine words every 401/403 as a possible browser check; from Archive.org it is a
+        // restricted or removed item, so it fails over like a dead link and reads as one.
+        const refused = archiveRefusal(job2.parts ? job2.currentSource : job2.release, cause(error2.message));
+        if (refused) error2 = new Error(`Source unavailable: HTTP ${refused}. Choose another source.`);
+        const browser = !refused && (error2 instanceof BrowserRequired || /browser verification required/i.test(cause(error2.message)));
         const retried = job2.state !== "pausing" && !job2.cancelling && browser && active2.transferring && reresolve(job2);
         const switched = !retried && job2.state !== "pausing" && !job2.cancelling && failOver(job2, error2);
         if (!retried && !switched && job2.state !== "pausing") {
