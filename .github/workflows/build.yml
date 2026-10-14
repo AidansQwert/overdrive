@@ -4,10 +4,11 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
-    # A push that only touches the README and its images has nothing to build.
+    # A push that only touches the README, its images or the issue forms has nothing to build.
     paths-ignore:
       - "README.md"
       - ".github/readme/**"
+      - ".github/ISSUE_TEMPLATE/**"
   workflow_dispatch:
 
 permissions:
