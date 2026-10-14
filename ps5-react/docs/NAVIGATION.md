@@ -86,7 +86,9 @@ for what was typed and `__ps5ReactKeyboard('key', name)` for `Backspace`, `Enter
 the platform's hold-to-repeat. Characters follow the US layout, since the console reports key positions,
 not the layout's characters. These reach only `useKeyboardInput` handlers, never the focus manager, so
 typing fills a field without moving focus. The desktop host keeps its keys for the controller bindings
-and reports no keyboard input. The keyboard has no hardware evidence yet ([HARDWARE.md](HARDWARE.md)).
+and reports no keyboard input. libSceKeyboard is looked up at runtime (`dlopen`), as the title does not
+link it: where it can't be loaded the keyboard stays off and the log says so. The keyboard has no
+hardware evidence yet ([HARDWARE.md](HARDWARE.md)).
 
 The focus manager does not move on these buttons: they go to the enclosing
 `FocusScope.onAction` handlers (tabs on L1/R1, a filter on Triangle, settings on Options)

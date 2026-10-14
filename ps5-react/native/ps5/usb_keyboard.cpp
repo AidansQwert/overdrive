@@ -7,7 +7,9 @@
 
 #include <algorithm>
 #include <cstring>
+#include <dlfcn.h>
 #include <iterator>
+#include <type_traits>
 
 namespace {
 
@@ -71,18 +73,46 @@ bool held(const std::uint16_t (&keys)[16], std::uint16_t usage) {
 
 }  // namespace
 
-extern "C" {
-int sceKeyboardInit(void);
-int sceKeyboardOpen(int user, int type, int index, void* param);
-int sceKeyboardReadState(int handle, KeyboardState* state);
-int sceKeyboardClose(int handle);
-int sceUserServiceGetForegroundUser(int* user);
+extern "C" int sceUserServiceGetForegroundUser(int* user);
+
+namespace {
+
+// libSceKeyboard is not one of the modules the title links, so its calls are looked up when the
+// keyboard opens, like host_platform.cpp's OptionalSymbol: a direct call into a module the process
+// never loaded jumps to nothing and ends the title (CE-108255-1 at launch, rip 0x780). Missing any
+// of them leaves the keyboard off and the title running.
+struct KeyboardCalls {
+  int (*init)(void) = nullptr;
+  int (*open)(int user, int type, int index, void* param) = nullptr;
+  int (*read_state)(int handle, KeyboardState* state) = nullptr;
+  int (*close)(int handle) = nullptr;
+};
+KeyboardCalls calls;
+
+bool resolve_calls() {
+  constexpr const char* kModule = "libSceKeyboard.sprx";
+  void* module = dlopen(kModule, RTLD_LAZY);
+  if (!module) {
+    async_log::write("[PS5-REACT] keyboard: %s unavailable", kModule);
+    return false;
+  }
+  auto find = [&](auto& function, const char* name) {
+    function = reinterpret_cast<std::remove_reference_t<decltype(function)>>(dlsym(module, name));
+    if (!function) async_log::write("[PS5-REACT] keyboard: %s unavailable from %s", name, kModule);
+    return function != nullptr;
+  };
+  const bool found = find(calls.init, "sceKeyboardInit") & find(calls.open, "sceKeyboardOpen") &
+                     find(calls.read_state, "sceKeyboardReadState") & find(calls.close, "sceKeyboardClose");
+  if (!found) calls = {};
+  return found;
 }
+
+}  // namespace
 
 namespace usb_keyboard {
 
 Session::~Session() {
-  if (handle_ > 0) sceKeyboardClose(handle_);
+  if (handle_ > 0) calls.close(handle_);
 }
 
 bool Session::open() {
@@ -91,12 +121,13 @@ bool Session::open() {
     async_log::write("[PS5-REACT] keyboard: no foreground user 0x%08x", static_cast<unsigned>(error));
     return false;
   }
-  if (int error = sceKeyboardInit(); error != 0) {
+  if (!resolve_calls()) return false;
+  if (int error = calls.init(); error != 0) {
     async_log::write("[PS5-REACT] keyboard: sceKeyboardInit=0x%08x", static_cast<unsigned>(error));
     return false;
   }
   long param = 0;
-  handle_ = sceKeyboardOpen(user, 0, 0, &param);
+  handle_ = calls.open(user, 0, 0, &param);
   if (handle_ <= 0) {
     async_log::write("[PS5-REACT] keyboard: sceKeyboardOpen=0x%08x", static_cast<unsigned>(handle_));
     handle_ = -1;
@@ -109,7 +140,7 @@ bool Session::poll(std::int64_t now_us, Emit emit) {
   if (handle_ <= 0) return true;
   KeyboardState state;
   std::memset(&state, 0, sizeof state);
-  if (int error = sceKeyboardReadState(handle_, &state); error != 0) {
+  if (int error = calls.read_state(handle_, &state); error != 0) {
     // Logged once per run of failures: an unplugged keyboard must not fill the log every frame.
     if (!read_failed_) async_log::write("[PS5-REACT] keyboard: sceKeyboardReadState=0x%08x", static_cast<unsigned>(error));
     read_failed_ = true;
