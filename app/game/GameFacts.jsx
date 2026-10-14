@@ -1,25 +1,31 @@
 // ../pub-game-store/native/game/GameFacts.jsx
 // reconstructed from the esbuild bundle in eboot.bin
+// MODIFIED: the fact labels stay in English.
 
 import '../assets/Inter-Regular.ttf';
 import { jsx, jsxs } from 'react/jsx-runtime';
 import { preferredRelease } from './sources.js';
 import { useT } from '../i18n/index.js';
+import en from '../i18n/locales/en.json';
 import { formatDate3 } from '../state/catalog.js';
 import { formatBytes, formatSize } from '../state/size.js';
 import { PlatformBadge } from '../ui/PlatformBadge.jsx';
 import { Text, View } from '@ps5-react/core';
 
+  // A label gets 144 px beside its 264 px value, and every translation but English runs longer
+  // (“Dimensione del download” is 253 px), pushing the value out of the panel. The labels stay
+  // in English, the shortest; the title and the values (dates, sizes) follow the language.
+  var label = (key) => en[key];
   function GameFacts({ game }) {
     const t2 = useT();
     const releases = game.releases || [];
     const bytes = releases[preferredRelease(releases)]?.sizeBytes;
-    const size = bytes ? [t2("game.facts.downloadSize"), formatBytes(bytes)] : [t2("game.facts.installSize"), game.sizeGb ? formatSize(game.sizeGb) : "\u2014"];
+    const size = bytes ? [label("game.facts.downloadSize"), formatBytes(bytes)] : [label("game.facts.installSize"), game.sizeGb ? formatSize(game.sizeGb) : "\u2014"];
     const platform = /* @__PURE__ */ (0, jsx)(PlatformBadge, { platforms: game.platforms });
     const rows = [
-      [t2("game.facts.platform"), platform],
-      [t2("game.facts.publisher"), game.publisher || "\u2014"],
-      [t2("game.facts.releaseDate"), formatDate3(game.releaseDate)],
+      [label("game.facts.platform"), platform],
+      [label("game.facts.publisher"), game.publisher || "\u2014"],
+      [label("game.facts.releaseDate"), formatDate3(game.releaseDate)],
       size
     ];
     return /* @__PURE__ */ (0, jsxs)(View, { style: { width: 432 }, children: [
