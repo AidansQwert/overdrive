@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Additional attribution term: see LICENSE-ATTRIBUTION.
 import {useLayoutEffect, useRef} from 'react';
-import {subscribeInput, subscribeKeyboard} from './input.js';
+import {subscribeInput} from './input.js';
 import {Text as EngineText, unstable_batchedUpdates} from 'embedded-react';
 import {setFrameBatcher} from './frame.js';
 import {inspectableText} from './focus/inspect-text.js';
@@ -33,19 +33,6 @@ export function useController(handler) {
     current.current(action);
     if (legacyActions[action]) current.current(legacyActions[action]);
   }), []);
-}
-
-/**
- * Subscribe to a USB keyboard while mounted (PS5 host only; see docs/NAVIGATION.md). The handler
- * gets `{type: 'text', value}` for typed characters and `{type: 'key', value}` for `Backspace`,
- * `Enter`, `Escape` and `Tab`. Pass a falsy handler to stop listening.
- * @param {((input: import('./input.js').KeyboardInput) => void) | null | undefined} handler
- */
-export function useKeyboardInput(handler) {
-  const current = useRef(handler);
-  useLayoutEffect(() => { current.current = handler; });
-  const listening = Boolean(handler);
-  useLayoutEffect(() => (listening ? subscribeKeyboard(input => current.current?.(input)) : undefined), [listening]);
 }
 
 /**

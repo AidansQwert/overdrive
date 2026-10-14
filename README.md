@@ -257,7 +257,7 @@ that creates its tag, and installed apps offer exactly the tested files on their
 </details>
 
 <details>
-<summary><b>Changes to upstream ps5-react</b></summary>
+<summary><b>Fixes over upstream ps5-react</b></summary>
 <br>
 
 Two fixes in the vendored framework, both in the build tooling and both reported by a Linux build:
@@ -268,13 +268,6 @@ Two fixes in the vendored framework, both in the build tooling and both reported
 - `ps5-react/tools/build_ps5.py` opened the pinned LLVM package's `data.tar.zst` with `tarfile`,
   which reads zstd only from Python 3.14 while the documented minimum is 3.12. It now falls back
   to the `zstd` command.
-
-One addition, for Overdrive's text fields:
-
-- **USB keyboard.** `ps5-react/native/ps5/usb_keyboard.cpp` reads a keyboard plugged into the console
-  through libSceKeyboard and hands typed characters (US layout) and Backspace, Enter, Escape and Tab to
-  the new `useKeyboardInput` hook (input protocol v6, see `ps5-react/docs/NAVIGATION.md`). Without a
-  keyboard nothing changes. It has no hardware evidence yet.
 
 Nothing else in the framework is changed.
 

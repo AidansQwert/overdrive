@@ -1,13 +1,5 @@
 # Changelog
 
-## Unreleased — USB keyboard
-
-- The PS5 host reads a USB keyboard through libSceKeyboard (input protocol v6): typed characters, on a
-  US layout, and the editing keys Backspace, Enter, Escape and Tab, with hold-to-repeat, reach the new
-  `useKeyboardInput(handler)` as `{type: 'text' | 'key', value}`. They never move focus. Without a
-  keyboard, or if the console refuses one, nothing is sent and the title runs as before; the log says
-  which. The desktop host keeps its keys for the controller bindings. Not hardware-tested yet.
-
 ## Unreleased — comparing upscalers
 
 - `<Video compare={{upscale, split}}>` (native ABI v15, `video.setCompare`): right of `split` (0 to 1

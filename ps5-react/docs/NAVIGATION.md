@@ -60,7 +60,7 @@ AppRegistry.registerComponent('menu', () => Menu);
 `npm run create` scaffolds this menu; `apps/starter`, `apps/tailwind-gallery`,
 `apps/system-explorer`, and `apps/motion-lab` use the patterns below.
 
-## Host input (input protocol v6)
+## Host input (input protocol v5)
 
 The input protocol is versioned on its own; it is not the native API's ABI
 version ([NATIVE-API.md](NATIVE-API.md#contract)).
@@ -80,17 +80,6 @@ Since input protocol v5, hosts also report the touchpad's first finger: `__ps5Re
 with its position 0..1 across and down the pad each frame it touches, and `__ps5ReactTouch(null)`
 once when it lifts (the PS5 reads the DualSense; the desktop, a controller's touchpad through SDL).
 See [Touchpad](#touchpad).
-
-Since input protocol v6, the PS5 host also reads a USB keyboard: `__ps5ReactKeyboard('text', characters)`
-for what was typed and `__ps5ReactKeyboard('key', name)` for `Backspace`, `Enter`, `Escape` and `Tab`, with
-the platform's hold-to-repeat. Characters follow the US layout, since the console reports key positions,
-not the layout's characters. These reach only `useKeyboardInput` handlers, never the focus manager, so
-typing fills a field without moving focus. The desktop host keeps its keys for the controller bindings
-and reports no keyboard input. The title does not load libSceKeyboard, and a fake-signed title may not
-load it by path, so `main` has the system load it by id (`sceSysmoduleLoadModule(0x0106)`, before filesystem
-elevation) and its calls come from `sceKernelDlsym`; where any step fails the keyboard stays off and the
-log says which (`keyboard: module 0x0106 load=… handle=…`). A keyboard that isn't there at launch is tried
-again every three seconds. The keyboard has no hardware evidence yet ([HARDWARE.md](HARDWARE.md)).
 
 The focus manager does not move on these buttons: they go to the enclosing
 `FocusScope.onAction` handlers (tabs on L1/R1, a filter on Triangle, settings on Options)
