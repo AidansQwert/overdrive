@@ -1,5 +1,6 @@
 // ../pub-game-store/native/i18n/locales.js
 // reconstructed from the esbuild bundle in eboot.bin
+// MODIFIED: Italian.
 
 
   var NBSP = "\xA0";
@@ -130,6 +131,16 @@
       date: "{d}. {MMM} {y}",
       months: ["Jan.", "Feb.", "M\xE4rz", "Apr.", "Mai", "Juni", "Juli", "Aug.", "Sept.", "Okt.", "Nov.", "Dez."],
       list: [", ", " und ", " und "]
+    },
+    {
+      code: "it",
+      name: "Italiano",
+      group: ".",
+      decimal: ",",
+      percent: "{n}%",
+      date: "{d} {MMM} {y}",
+      months: ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"],
+      list: [", ", " e ", " e "]
     },
     {
       code: "ja",

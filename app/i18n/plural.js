@@ -1,5 +1,6 @@
 // ../pub-game-store/native/i18n/plural.js
 // reconstructed from the esbuild bundle in eboot.bin
+// MODIFIED: Italian plural rule.
 
 
   function operands(n) {
@@ -16,6 +17,7 @@
     hi: ({ n, i }) => i === 0 || n === 1 ? "one" : "other",
     bn: ({ n, i }) => i === 0 || n === 1 ? "one" : "other",
     es: (o) => o.n === 1 ? "one" : millions(o) ? "many" : "other",
+    it: (o) => o.i === 1 && o.v === 0 ? "one" : millions(o) ? "many" : "other",
     fr: (o) => o.i === 0 || o.i === 1 ? "one" : millions(o) ? "many" : "other",
     "pt-BR": (o) => o.i === 0 || o.i === 1 ? "one" : millions(o) ? "many" : "other",
     ru: ({ i, v }) => {

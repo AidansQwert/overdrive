@@ -1,5 +1,6 @@
 // ../pub-game-store/native/ui/Header.jsx
 // reconstructed from the esbuild bundle in eboot.bin
+// MODIFIED: the settings button shows a gear.
 
 import '../assets/Inter-Regular.ttf';
 import { jsx, jsxs } from 'react/jsx-runtime';
@@ -195,7 +196,7 @@ import { FocusScope, Text, View } from '@ps5-react/core';
               NavItem,
               {
                 focusKey: "nav:language",
-                icon: "globe",
+                icon: "settings",
                 onPress: () => setChoosingLanguage(true),
                 nextFocusDown: down,
                 ...focusEnd(rtl, "nav:language")
