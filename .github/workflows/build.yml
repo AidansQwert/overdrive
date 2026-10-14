@@ -1,0 +1,85 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ps5:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang-18 llvm-18 llvm-18-dev cmake ninja-build nodejs npm python3-venv \
+            zlib1g-dev build-essential pkg-config unzip zip curl zstd exfatprogs exfat-fuse
+          # The build wants unversioned clang and llvm-config in --llvm.
+          for tool in clang clang++ llvm-config; do
+            sudo ln -sf "/usr/bin/$tool-18" "/usr/local/bin/$tool"
+          done
+          clang --version | head -1
+          llvm-config --version
+
+      - name: Install the Python dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --disable-pip-version-check -r ps5-react/requirements.txt
+          # The build spawns python3 for its own tools, so the venv goes on PATH.
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+
+      - name: Check the exfat packaging
+        run: |
+          mkdir -p "$RUNNER_TEMP/check/payload"
+          printf 'eboot' > "$RUNNER_TEMP/check/payload/eboot.bin"
+          # Big enough that the image gets the same geometry as the real one.
+          head -c 24000000 /dev/urandom > "$RUNNER_TEMP/check/payload/data.bin"
+          sudo bash packaging/make-exfat.sh "$RUNNER_TEMP/check/payload" \
+            "$RUNNER_TEMP/check/check.exfat" CHECK
+
+      - name: Cache the downloaded sources
+        uses: actions/cache@v4
+        with:
+          path: ps5-react/.deps
+          key: deps-${{ hashFiles('ps5-react/dependencies.lock.json') }}
+
+      - name: Build
+        working-directory: ps5-react
+        run: python3 tools/build_ps5.py --app-dir "$GITHUB_WORKSPACE/app" --llvm /usr/bin
+
+      - name: Package
+        run: |
+          sudo bash packaging/make-exfat.sh ps5-react/dist/PPSA99058 Overdrive.exfat OVERDRIVE
+          # The in-app updater fetches one name, for an image install: the image
+          # alone at the root of update.zip.
+          zip -q -X -j update.zip Overdrive.exfat
+          unzip -l update.zip
+          ls -l Overdrive.exfat update.zip ps5-react/dist/
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: Overdrive
+          path: |
+            Overdrive.exfat
+            update.zip
+            ps5-react/dist/PPSA99058.receipt.json
+          if-no-files-found: error
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          assets="Overdrive.exfat update.zip"
+          gh release create "$GITHUB_REF_NAME" $assets \
+            --title "Overdrive $GITHUB_REF_NAME" --generate-notes \
+          || gh release upload "$GITHUB_REF_NAME" $assets --clobber
