@@ -7,9 +7,7 @@
 
 #include <algorithm>
 #include <cstring>
-#include <dlfcn.h>
 #include <iterator>
-#include <type_traits>
 
 namespace {
 
@@ -73,14 +71,25 @@ bool held(const std::uint16_t (&keys)[16], std::uint16_t usage) {
 
 }  // namespace
 
-extern "C" int sceUserServiceGetForegroundUser(int* user);
+extern "C" {
+int sceUserServiceGetForegroundUser(int* user);
+int sceSysmoduleLoadModule(std::uint16_t id);
+int sceSysmoduleGetModuleHandleInternal(std::uint32_t id, std::int32_t* handle);
+int sceKernelDlsym(std::int32_t handle, const char* symbol, void** address);
+}
 
 namespace {
 
-// libSceKeyboard is not one of the modules the title links, so its calls are looked up when the
-// keyboard opens, like host_platform.cpp's OptionalSymbol: a direct call into a module the process
-// never loaded jumps to nothing and ends the title (CE-108255-1 at launch, rip 0x780). Missing any
-// of them leaves the keyboard off and the title running.
+// libSceKeyboard is not loaded for the title. Calling it directly jumps to nothing (CE-108255-1 at
+// launch, rip 0x780); the SDK's dlopen works only in payloads; and a fake-signed title may not load
+// the module by path (0x80020063). The system loads it as one of its modules by id instead, as
+// prospero-win (native/pw_hid_ps5.c) measured on the console: sceSysmoduleLoadModule before
+// filesystem elevation, the module's handle from sceSysmoduleGetModuleHandleInternal (by its id or
+// its internal id, 0x80000000 | id), and each call from sceKernelDlsym. A step that fails leaves the
+// keyboard off and the title running.
+constexpr std::uint16_t kKeyboardModule = 0x0106;
+constexpr std::int64_t kOpenRetryUs = 3000000;
+
 struct KeyboardCalls {
   int (*init)(void) = nullptr;
   int (*open)(int user, int type, int index, void* param) = nullptr;
@@ -88,60 +97,90 @@ struct KeyboardCalls {
   int (*close)(int handle) = nullptr;
 };
 KeyboardCalls calls;
+// What preload found, for Session::open to log.
+int load_status = 0;
+std::int32_t module_handle = -1;
+const char* missing_call = nullptr;
+bool preloaded = false;
 
-bool resolve_calls() {
-  constexpr const char* kModule = "libSceKeyboard.sprx";
-  void* module = dlopen(kModule, RTLD_LAZY);
-  if (!module) {
-    async_log::write("[PS5-REACT] keyboard: %s unavailable", kModule);
+std::int32_t system_module_handle(std::uint16_t id) {
+  std::int32_t handle = -1;
+  if (sceSysmoduleGetModuleHandleInternal(id, &handle) == 0 && handle >= 0) return handle;
+  handle = -1;
+  if (sceSysmoduleGetModuleHandleInternal(0x80000000u | id, &handle) == 0 && handle >= 0) return handle;
+  return -1;
+}
+
+template <typename Function>
+bool find_call(Function& function, const char* name) {
+  void* address = nullptr;
+  if (sceKernelDlsym(module_handle, name, &address) != 0 || !address) {
+    if (!missing_call) missing_call = name;
     return false;
   }
-  auto find = [&](auto& function, const char* name) {
-    function = reinterpret_cast<std::remove_reference_t<decltype(function)>>(dlsym(module, name));
-    if (!function) async_log::write("[PS5-REACT] keyboard: %s unavailable from %s", name, kModule);
-    return function != nullptr;
-  };
-  // Every lookup runs, so the log names each missing call.
-  const bool has_init = find(calls.init, "sceKeyboardInit");
-  const bool has_open = find(calls.open, "sceKeyboardOpen");
-  const bool has_read = find(calls.read_state, "sceKeyboardReadState");
-  const bool has_close = find(calls.close, "sceKeyboardClose");
-  const bool found = has_init && has_open && has_read && has_close;
-  if (!found) calls = {};
-  return found;
+  function = reinterpret_cast<Function>(address);
+  return true;
 }
 
 }  // namespace
 
 namespace usb_keyboard {
 
+void preload() {
+  preloaded = true;
+  load_status = sceSysmoduleLoadModule(kKeyboardModule);
+  module_handle = system_module_handle(kKeyboardModule);
+  if (module_handle < 0) return;
+  // Every lookup runs, so the log names the first one missing.
+  const bool has_init = find_call(calls.init, "sceKeyboardInit");
+  const bool has_open = find_call(calls.open, "sceKeyboardOpen");
+  const bool has_read = find_call(calls.read_state, "sceKeyboardReadState");
+  const bool has_close = find_call(calls.close, "sceKeyboardClose");
+  if (!(has_init && has_open && has_read && has_close)) calls = {};
+}
+
 Session::~Session() {
-  if (handle_ > 0) calls.close(handle_);
+  if (handle_ >= 0 && calls.close) calls.close(handle_);
 }
 
 bool Session::open() {
-  int user = kInvalidUserId;
-  if (int error = sceUserServiceGetForegroundUser(&user); error != 0 || user == kInvalidUserId) {
+  async_log::write("[PS5-REACT] keyboard: module 0x%04x load=0x%08x handle=%d%s%s", static_cast<unsigned>(kKeyboardModule),
+                   static_cast<unsigned>(load_status), static_cast<int>(module_handle),
+                   missing_call ? " missing " : "", missing_call ? missing_call : "");
+  if (!preloaded || !calls.init) return false;
+  if (int error = sceUserServiceGetForegroundUser(&user_); error != 0 || user_ == kInvalidUserId) {
     async_log::write("[PS5-REACT] keyboard: no foreground user 0x%08x", static_cast<unsigned>(error));
     return false;
   }
-  if (!resolve_calls()) return false;
   if (int error = calls.init(); error != 0) {
     async_log::write("[PS5-REACT] keyboard: sceKeyboardInit=0x%08x", static_cast<unsigned>(error));
     return false;
   }
-  long param = 0;
-  handle_ = calls.open(user, 0, 0, &param);
-  if (handle_ <= 0) {
-    async_log::write("[PS5-REACT] keyboard: sceKeyboardOpen=0x%08x", static_cast<unsigned>(handle_));
-    handle_ = -1;
-    return false;
+  ready_ = true;
+  try_open(0);
+  return handle_ >= 0;
+}
+
+void Session::try_open(std::int64_t now_us) {
+  std::uint8_t param[8] = {};
+  const int handle = calls.open(user_, 0, 0, param);
+  retry_at_us_ = now_us + kOpenRetryUs;
+  if (handle >= 0) {
+    handle_ = handle;
+    async_log::write("[PS5-REACT] keyboard: open handle=%d", handle);
+    return;
   }
-  return true;
+  // Without a keyboard plugged in this fails every few seconds: logged the first time only.
+  if (!open_failed_) async_log::write("[PS5-REACT] keyboard: sceKeyboardOpen=0x%08x, retrying", static_cast<unsigned>(handle));
+  open_failed_ = true;
 }
 
 bool Session::poll(std::int64_t now_us, Emit emit) {
-  if (handle_ <= 0) return true;
+  if (handle_ < 0) {
+    if (!ready_ || now_us < retry_at_us_) return true;
+    try_open(now_us);
+    if (handle_ < 0) return true;
+  }
   KeyboardState state;
   std::memset(&state, 0, sizeof state);
   if (int error = calls.read_state(handle_, &state); error != 0) {

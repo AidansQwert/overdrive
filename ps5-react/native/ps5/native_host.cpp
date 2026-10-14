@@ -733,6 +733,8 @@ int main() {
 #if PS5_REACT_VIDEO
   video::preload_platform_decoder();
 #endif
+  // Like the decoder, before elevation: the system refuses module loads afterwards.
+  usb_keyboard::preload();
   initialize_filesystem_access();
   pthread_attr_t attributes;
   int result = pthread_attr_init(&attributes);
