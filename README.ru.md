@@ -18,7 +18,7 @@
 <p align="center">
   <a href="https://github.com/MyLuxy/overdrive/releases/latest"><img src="https://img.shields.io/github/v/release/MyLuxy/overdrive?style=for-the-badge&label=release&labelColor=0b0b0d&color=2a2a2f" alt="Последний релиз" width="197"></a>
   <a href="https://github.com/MyLuxy/overdrive/releases"><img src="https://img.shields.io/github/downloads/MyLuxy/overdrive/total?style=for-the-badge&label=downloads&labelColor=0b0b0d&color=2a2a2f" alt="Скачивания" width="183"></a>
-  <img src="https://img.shields.io/badge/platform-PS5-2a2a2f?style=for-the-badge&labelColor=0b0b0d" alt="Платформа: PS5" width="184">
+  <a href="https://github.com/sponsors/MyLuxy"><img src="https://img.shields.io/badge/sponsor-%E2%9D%A4-db61a2?style=for-the-badge&logo=githubsponsors&logoColor=white&labelColor=0b0b0d" alt="Поддержать MyLuxy на GitHub" width="180"></a>
 </p>
 
 <p align="center">
@@ -134,6 +134,14 @@ Overdrive нужно установить вручную только один �
 Для обновления нужно около **600 МБ свободного места** на накопителе, где лежит Overdrive.
 Файл `update.zip` в каждом релизе — это тот самый пакет, который скачивает приложение; вам он
 самому не нужен.
+
+## Поддержать проект
+
+Overdrive бесплатный и с открытым исходным кодом. Если он вам нравится, спонсорство помогает мне его обновлять.
+
+<p align="center">
+  <a href="https://github.com/sponsors/MyLuxy"><img src=".github/readme/sponsor.ru.svg" alt="Поддержать Overdrive через GitHub Sponsors" width="414"></a>
+</p>
 
 ## Решение проблем
 

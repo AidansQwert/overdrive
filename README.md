@@ -18,7 +18,7 @@
 <p align="center">
   <a href="https://github.com/MyLuxy/overdrive/releases/latest"><img src="https://img.shields.io/github/v/release/MyLuxy/overdrive?style=for-the-badge&label=release&labelColor=0b0b0d&color=2a2a2f" alt="Latest release" width="197"></a>
   <a href="https://github.com/MyLuxy/overdrive/releases"><img src="https://img.shields.io/github/downloads/MyLuxy/overdrive/total?style=for-the-badge&label=downloads&labelColor=0b0b0d&color=2a2a2f" alt="Downloads" width="183"></a>
-  <img src="https://img.shields.io/badge/platform-PS5-2a2a2f?style=for-the-badge&labelColor=0b0b0d" alt="Platform: PS5" width="184">
+  <a href="https://github.com/sponsors/MyLuxy"><img src="https://img.shields.io/badge/sponsor-%E2%9D%A4-db61a2?style=for-the-badge&logo=githubsponsors&logoColor=white&labelColor=0b0b0d" alt="Sponsor MyLuxy on GitHub" width="180"></a>
 </p>
 
 <p align="center">
@@ -132,6 +132,14 @@ itself a few seconds after it opens:
 
 The update needs about **600 MB free** on the drive that holds Overdrive. `update.zip` in each
 release is the package the app downloads for this; you never need it yourself.
+
+## Support the project
+
+Overdrive is free and open source. If you enjoy it, sponsoring helps me keep it updated.
+
+<p align="center">
+  <a href="https://github.com/sponsors/MyLuxy"><img src=".github/readme/sponsor.svg" alt="Sponsor Overdrive on GitHub Sponsors" width="358"></a>
+</p>
 
 ## Troubleshooting
 
