@@ -1,6 +1,6 @@
 // ../pub-game-store/native/ui/LanguageSheet.jsx
 // reconstructed from the esbuild bundle in eboot.bin
-// MODIFIED: the sheet is the app's settings, with navigation vibration above the languages.
+// MODIFIED: the sheet is the app's settings: a download speed limit, navigation vibration, then the languages.
 
 import '../assets/Inter-Regular.ttf';
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
@@ -11,6 +11,7 @@ import { Icon } from './Icon.jsx';
 import { SideSheet } from './SideSheet.jsx';
 import { colors } from './colors.js';
 import { setNavigationHaptics, useNavigationHaptics } from './haptics.js';
+import { LIMITS, setSpeedLimit, useSpeedLimit } from '../state/speed-limit.js';
 import { Text, View, useIsFocused } from '@ps5-react/core';
 
   var nameOf = (code) => LOCALES.find((locale2) => locale2.code === code).name;
@@ -27,6 +28,29 @@ import { Text, View, useIsFocused } from '@ps5-react/core';
   }
   function Row4({ code, name, detail: detail2, checked, onPress }) {
     return /* @__PURE__ */ (0, jsx)(View, { focusKey: `language:${code}`, onPress, style: (_state) => [{ position: "relative", flexDirection: "row", alignItems: "center", gap: 24, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 18 }, _state.focused ? { backgroundColor: "#212125" } : null], children: /* @__PURE__ */ (0, jsx)(LanguageFace, { name, detail: detail2, checked }) });
+  }
+  // One segment of the speed limit (issue #15): every value in view, the chosen one filled. The D-pad
+  // moves along the row and Cross picks, so no value has to be typed.
+  function SpeedSegment({ limit, chosen }) {
+    const t2 = useT();
+    return /* @__PURE__ */ (0, jsxs)(View, { focusKey: `settings:speed:${limit}`, autoFocus: chosen, onPress: () => setSpeedLimit(limit), style: { position: "relative", flex: limit ? 1 : 2, height: 60, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: chosen ? colors.fg : colors.surface2 }, children: [
+      /* @__PURE__ */ (0, jsx)(FocusRing, {}),
+      /* @__PURE__ */ (0, jsx)(Text, { style: { fontFamily: "Inter-Regular", fontSize: 21, fontWeight: 600, color: chosen ? colors.accentFg : colors.muted, numberOfLines: 1 }, children: limit ? String(limit) : t2("settings.speedUnlimited") })
+    ] });
+  }
+  function SpeedLimit() {
+    const t2 = useT();
+    const limit = useSpeedLimit();
+    return /* @__PURE__ */ (0, jsxs)(View, { style: { gap: 18, paddingHorizontal: 18, paddingTop: 6, paddingBottom: 18 }, children: [
+      /* @__PURE__ */ (0, jsxs)(View, { style: { gap: 3 }, children: [
+        /* @__PURE__ */ (0, jsxs)(View, { style: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }, children: [
+          /* @__PURE__ */ (0, jsx)(Text, { style: { fontFamily: "Inter-Regular", fontSize: 23, fontWeight: 600, color: colors.fg }, children: t2("settings.speedLimit") }),
+          /* @__PURE__ */ (0, jsx)(Text, { style: { fontFamily: "Inter-Regular", fontSize: 21, color: colors.fg }, children: limit ? t2("units.speed", { n: String(limit) }) : t2("settings.speedUnlimited") })
+        ] }),
+        /* @__PURE__ */ (0, jsx)(Text, { style: { fontFamily: "Inter-Regular", fontSize: 21, color: colors.muted, lineHeight: 30 }, children: t2("settings.speedLimitDetail") })
+      ] }),
+      /* @__PURE__ */ (0, jsx)(View, { style: { flexDirection: "row", gap: 9 }, children: LIMITS.map((value) => /* @__PURE__ */ (0, jsx)(SpeedSegment, { limit: value, chosen: value === limit }, value)) })
+    ] });
   }
   function SectionLabel({ icon, title, detail: detail2 }) {
     const text = /* @__PURE__ */ (0, jsxs)(View, { style: { flex: 1, gap: 3 }, children: [
@@ -46,11 +70,13 @@ import { Text, View, useIsFocused } from '@ps5-react/core';
       chooseLanguage(code);
       onClose();
     };
-    // The vibration row stays open on press, so the player feels the change at once; a language
-    // choice still closes the sheet as before. Focus opens on the top row, where both are in view.
+    // The speed limit and vibration stay open on press, so the change shows (or is felt) at once; a
+    // language choice still closes the sheet as before. Focus opens on the chosen speed, at the top.
     return /* @__PURE__ */ (0, jsx)(SideSheet, { title: t2("settings.title"), onClose, children: /* @__PURE__ */ (0, jsxs)(View, { style: { gap: 6, padding: 9, paddingBottom: 48 }, children: [
+      /* @__PURE__ */ (0, jsx)(SectionLabel, { icon: "download", title: t2("settings.downloads") }),
+      /* @__PURE__ */ (0, jsx)(SpeedLimit, {}),
       /* @__PURE__ */ (0, jsx)(SectionLabel, { title: t2("settings.controller") }),
-      /* @__PURE__ */ (0, jsx)(View, { focusKey: "settings:vibration", autoFocus: true, onPress: () => setNavigationHaptics(!vibration), style: (_state) => [{ position: "relative", flexDirection: "row", alignItems: "center", gap: 24, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 18 }, _state.focused ? { backgroundColor: "#212125" } : null], children: /* @__PURE__ */ (0, jsx)(LanguageFace, { name: t2("settings.vibration"), detail: t2("settings.vibrationDetail"), checked: vibration }) }),
+      /* @__PURE__ */ (0, jsx)(View, { focusKey: "settings:vibration", onPress: () => setNavigationHaptics(!vibration), style: (_state) => [{ position: "relative", flexDirection: "row", alignItems: "center", gap: 24, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 18 }, _state.focused ? { backgroundColor: "#212125" } : null], children: /* @__PURE__ */ (0, jsx)(LanguageFace, { name: t2("settings.vibration"), detail: t2("settings.vibrationDetail"), checked: vibration }) }),
       /* @__PURE__ */ (0, jsx)(SectionLabel, { icon: "languages", title: t2("language.title"), detail: t2("language.subtitle") }),
       /* @__PURE__ */ (0, jsx)(Row4, { code: "system", name: t2("language.system"), detail: nameOf(systemLocale()), checked: choice2 === null, onPress: () => pick2(null) }),
       LOCALES.map(
