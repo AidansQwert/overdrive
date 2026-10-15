@@ -172,6 +172,7 @@
   "errors.fileChanged": "Файл изменился на сервере",
   "errors.interrupted": "Остановлено при закрытии приложения",
   "errors.linkGone": "Ссылка на загрузку больше не работает",
+  "errors.notGameFile": "Хостинг прислал веб-страницу вместо игры",
   "errors.missingParts": "В этом источнике не хватает частей",
   "errors.needsBrowser": "Этот источник требует веб-браузер",
   "errors.noConnection": "Нет соединения с сервером",

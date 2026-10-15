@@ -172,6 +172,7 @@
   "errors.fileChanged": "فائل سرور پر بدل گئی",
   "errors.interrupted": "ایپ بند ہونے پر روک دی گئی",
   "errors.linkGone": "ڈاؤن لوڈ لنک اب کام نہیں کرتی",
+  "errors.notGameFile": "ہوسٹ نے گیم کے بجائے ویب پیج بھیجا",
   "errors.missingParts": "اس ذریعے میں حصے کم ہیں",
   "errors.needsBrowser": "اس ذریعے کو ویب براؤزر کی ضرورت ہے",
   "errors.noConnection": "سرور سے کوئی رابطہ نہیں",

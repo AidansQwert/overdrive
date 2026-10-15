@@ -172,6 +172,7 @@
   "errors.fileChanged": "تغير الملف على الخادم",
   "errors.interrupted": "توقف عند إغلاق التطبيق",
   "errors.linkGone": "رابط التحميل لم يعد يعمل",
+  "errors.notGameFile": "أرسل المضيف صفحة ويب بدلاً من اللعبة",
   "errors.missingParts": "هذا المصدر تنقصه أجزاء",
   "errors.needsBrowser": "هذا المصدر يحتاج متصفح ويب",
   "errors.noConnection": "لا يوجد اتصال بالخادم",

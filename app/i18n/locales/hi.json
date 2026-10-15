@@ -172,6 +172,7 @@
   "errors.fileChanged": "फ़ाइल सर्वर पर बदल गई",
   "errors.interrupted": "जब ऐप बंद हुआ तो रुका",
   "errors.linkGone": "डाउनलोड लिंक अब काम नहीं करता",
+  "errors.notGameFile": "होस्ट ने गेम की जगह एक वेब पेज भेजा",
   "errors.missingParts": "इस स्रोत में भाग कम हैं",
   "errors.needsBrowser": "यह स्रोत एक वेब ब्राउज़र की आवश्यकता है",
   "errors.noConnection": "सर्वर से कोई कनेक्शन नहीं",

@@ -373,6 +373,10 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
       if (!archives?.inspect) return;
       const { kind, refusal } = archives.inspect([job2.downloadDestination]);
       if (refusal) throw new Error(refusal);
+      // A source listed without a format is kept only for what its headers turn out to be: when they
+      // are none Overdrive knows, the host sent something else, usually a web page. Leaving it as a
+      // downloaded ".binary" (issue #8) told the user nothing.
+      if (!kind && job2.release.format === "binary") throw new Error("Not a game file: the host sent something else.");
       if (!kind) return;
       const artifact2 = formats.detected(job2.release, job2.root, kind);
       if (artifact2.nextAction === "extraction-required") {

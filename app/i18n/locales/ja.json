@@ -172,6 +172,7 @@
   "errors.fileChanged": "サーバー上のファイルが変更されました",
   "errors.interrupted": "アプリの終了時に停止しました",
   "errors.linkGone": "ダウンロードリンクが無効です",
+  "errors.notGameFile": "ホストがゲームではなくウェブページを送信しました",
   "errors.missingParts": "この入手元にはパートが足りません",
   "errors.needsBrowser": "この入手元にはWebブラウザが必要です",
   "errors.noConnection": "サーバーに接続できません",

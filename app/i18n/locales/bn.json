@@ -172,6 +172,7 @@
   "errors.fileChanged": "ফাইল সার্ভারে পরিবর্তিত হয়েছে",
   "errors.interrupted": "অ্যাপ বন্ধ হওয়ার সময় থেমেছিল",
   "errors.linkGone": "ডাউনলোড লিঙ্ক আর কাজ করে না",
+  "errors.notGameFile": "হোস্ট গেমের বদলে একটি ওয়েব পেজ পাঠিয়েছে",
   "errors.missingParts": "এই উৎসে কিছু অংশ নেই",
   "errors.needsBrowser": "এই উৎসের একটি ওয়েব ব্রাউজার প্রয়োজন",
   "errors.noConnection": "সার্ভারের সাথে কোনো সংযোগ নেই",

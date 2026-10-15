@@ -172,6 +172,7 @@
   "errors.fileChanged": "服务器上的文件已更改",
   "errors.interrupted": "应用关闭时已停止",
   "errors.linkGone": "下载链接已失效",
+  "errors.notGameFile": "托管网站发送的是网页而不是游戏",
   "errors.missingParts": "此来源缺少部分文件",
   "errors.needsBrowser": "此来源需要网页浏览器",
   "errors.noConnection": "无法连接到服务器",

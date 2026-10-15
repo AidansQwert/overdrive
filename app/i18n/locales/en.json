@@ -173,6 +173,7 @@
     "errors.fileChanged": "The file changed on the server",
     "errors.interrupted": "Stopped when the app closed",
     "errors.linkGone": "Download link no longer works",
+    "errors.notGameFile": "The host sent a web page instead of the game",
     "errors.missingParts": "This source is missing parts",
     "errors.needsBrowser": "This source needs a web browser",
     "errors.noConnection": "No connection to the server",
