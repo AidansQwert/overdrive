@@ -627,14 +627,15 @@ controls, slashes, backslashes or `..`. The deadline is an integer from 1 to
 completion. `cancel()` shuts down the connection, stops the payload's next
 read, and rejects `done` with `AbortError`. Host exit stops and joins the worker.
 
-The user must complete the provider's verification and select Download in the
-system browser. This API does not bypass verification or open the page; the app
+The user must complete the provider's verification in the system browser; the
+verified link is captured as Vikingfile's page holds it (a JSON string, slashes
+escaped), so the user need not select Download or its advertisements. This API does not bypass verification or open the page; the app
 opens it with `Linking.openURL` after submitting capture. Only a uniquely
 identified browser network process is read, with identity checked before every
 read. Scanning is limited to anonymous readable/writable nonexecutable user
-pages, 64 KiB every 32 ms, 128 MiB per session. No dumps, cookies, arbitrary
+pages, 64 KiB every 8 ms, 1 GiB per session. No dumps, cookies, arbitrary
 process selection or writes. Only complete ASCII/UTF-16 matching routes are
-returned. Provenance: `native/ps5/payloads/browser/README.md` (Orbit Store 1.0.1).
+returned. Provenance: `native/ps5/payloads/browser/README.md` (Orbit Store 1.0.1 and 1.3.5).
 
 A captured URL may already be stale; the app must validate host, decoded
 filename, HTTP status, content type and length before starting immediately.
