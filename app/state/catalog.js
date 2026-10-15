@@ -106,7 +106,10 @@ import { FileSystem, Image } from '@ps5-react/core';
     filecrypt: "Filecrypt",
     fileditchfiles: "FileDitch",
     ranoz: "Ranoz",
-    transfer: "Transfer.it"
+    transfer: "Transfer.it",
+    akirabox: "AkiraBox",
+    "link-vault.org": "LinkVault",
+    "rootz.so": "Rootz"
   };
   var MIN_HOST_GAMES = 20;
   var hostCounts = /* @__PURE__ */ new Map();
