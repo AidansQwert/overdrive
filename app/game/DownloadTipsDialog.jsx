@@ -4,11 +4,12 @@
 
 import '../assets/Inter-Regular.ttf';
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { describeSource, isDlc, requiredFirmware } from './sources.js';
 import { useT } from '../i18n/index.js';
 import { sourceKind } from '../state/download-sources.js';
 import { isPackage } from '../state/firmware.js';
+import { useNavActions } from '../state/nav.jsx';
 import { isPatchOnly } from '../state/release-sets.js';
 import { Button2 } from '../ui/Button.jsx';
 import { Cover } from '../ui/Cover.jsx';
@@ -68,14 +69,22 @@ import { FocusScope, Text, View, useIsFocused } from '@ps5-react/core';
   function DownloadTipsDialog({ game, release, submit, changeSource, onClose }) {
     const t2 = useT();
     const [open, setOpen] = (0, useState)(false);
+    const { focusLater } = useNavActions();
+    // The page moves focus with focusLater, retried until it lands: one still pending (back to the
+    // Download button, from a sheet that just closed) took focus off this dialog on the console.
+    // A newer request replaces it, so asking here is what makes the tips row win.
+    (0, useEffect)(() => {
+      focusLater("tips:toggle");
+    }, []);
     const { name, detail: detail2, size } = describeSource(release);
     const notes = notesFor(release);
     const proceed = () => {
       onClose();
       submit();
     };
+    // The source list replaces this dialog in place, as the options sheet's "next" items do: closing
+    // first would send focus back to the Download button underneath.
     const pick = () => {
-      onClose();
       changeSource();
     };
     const cancel = () => {
@@ -110,7 +119,7 @@ import { FocusScope, Text, View, useIsFocused } from '@ps5-react/core';
           open ? /* @__PURE__ */ (0, jsx)(View, { style: { flexDirection: "row", flexWrap: "wrap", rowGap: 16, columnGap: 44 }, children: TIPS.map((key) => /* @__PURE__ */ (0, jsx)(Tip, { title: t2(`tips.tip.${key}.title`), body: t2(`tips.tip.${key}.body`) }, key)) }) : null
         ] }),
         /* @__PURE__ */ (0, jsxs)(View, { style: { flexDirection: "row", alignItems: "center", gap: 18, borderTopWidth: 2, borderColor: colors.line, paddingTop: 26 }, children: [
-          /* @__PURE__ */ (0, jsx)(Button2, { variant: "primary", size: "lg", icon: "download", label: t2("tips.continue"), autoFocus: true, focusKey: "tips:continue", onPress: proceed }),
+          /* @__PURE__ */ (0, jsx)(Button2, { variant: "primary", size: "lg", icon: "download", label: t2("tips.continue"), focusKey: "tips:continue", onPress: proceed }),
           /* @__PURE__ */ (0, jsx)(Button2, { variant: "secondary", size: "lg", icon: "layers", label: t2("tips.changeSource"), focusKey: "tips:source", onPress: pick })
         ] })
       ] }) }) })
