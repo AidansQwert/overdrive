@@ -427,7 +427,7 @@
     "versions.title": "Choose version",
     "capture.title": "Vikingfile verification",
     "capture.preparing": "Preparing the file verification\u2026",
-    "capture.capturing": "Complete verification and select Download",
+    "capture.capturing": "Complete the verification, then wait",
     "capture.validating": "Checking the captured file\u2026",
-    "capture.detail": "Return here after selecting Download. Your download starts automatically when the file is verified. Capture lasts up to 3 minutes."
+    "capture.detail": "Don't press Download or any ad: the link is captured by itself. Then return here and the download starts automatically. Capture lasts up to 3 minutes."
   }

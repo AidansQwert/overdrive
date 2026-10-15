@@ -424,7 +424,7 @@
   "versions.title": "Escolher versão",
   "capture.title": "Verificação do Vikingfile",
   "capture.preparing": "Preparando a verificação do arquivo…",
-  "capture.capturing": "Passe a verificação e aperte Download",
+  "capture.capturing": "Conclua a verificação e aguarde",
   "capture.validating": "Conferindo o arquivo capturado…",
-  "capture.detail": "Volte aqui após apertar Download. O download começa automaticamente quando o arquivo é validado. A captura dura até 3 minutos."
+  "capture.detail": "Não aperte Download nem anúncios: o link é capturado sozinho. Depois volte aqui e o download começa automaticamente. A captura dura até 3 minutos."
 }
