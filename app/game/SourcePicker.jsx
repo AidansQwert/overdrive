@@ -22,9 +22,11 @@ import { Text, View, useIsFocused } from '@ps5-react/core';
   };
   // Whether the source suits this console: a tinted icon and words, readable without the colour.
   function StatusLine({ status }) {
-    const tint = status.tone === "ok" ? colors.ok : colors.warn;
+    // A DLC is neither: a neutral note, not a pass or a warning.
+    const tint = status.tone === "ok" ? colors.ok : status.tone === "info" ? colors.muted : colors.warn;
+    const icon = status.tone === "ok" ? "circleCheck" : status.tone === "info" ? "package" : "alert";
     return /* @__PURE__ */ (0, jsxs)(View, { style: { flexDirection: "row", alignItems: "center", gap: 9 }, children: [
-      /* @__PURE__ */ (0, jsx)(Icon, { name: status.tone === "ok" ? "circleCheck" : "alert", size: 18, color: tint }),
+      /* @__PURE__ */ (0, jsx)(Icon, { name: icon, size: 18, color: tint }),
       /* @__PURE__ */ (0, jsx)(Text, { style: { width: 423, fontFamily: "Inter-Regular", fontSize: 20, color: tint, numberOfLines: 1, ellipsizeMode: "tail", lineHeight: 28 }, children: status.text })
     ] });
   }
