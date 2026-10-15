@@ -3,6 +3,7 @@
 
 import { t } from '../i18n/core.js';
 import { sourceKind } from '../state/download-sources.js';
+import { consoleFirmware } from '../state/firmware.js';
 import { isPatchOnly } from '../state/release-sets.js';
 import { formatBytes } from '../state/size.js';
 
@@ -34,6 +35,23 @@ import { formatBytes } from '../state/size.js';
     if (kind === "direct" || kind === "manifest") return "direct";
     return kind === "browser" || kind === "datanodes" || kind === "unavailable" || GATED.has(kind) ? "browser" : "page";
   }
+  // The firmware a source needs, from its label ("USA 10.xx Base", "10.xx BackPort 4.xx"): a backport
+  // runs from the lowest firmware it names, anything else needs the highest. Null when it names none.
+  function requiredFirmware(release) {
+    const named = [...(release.label || "").matchAll(/\b(\d{1,2})\.xx\b/gi)].map((match) => Number(match[1]));
+    if (!named.length) return null;
+    return isBackport(release) ? Math.min(...named) : Math.max(...named);
+  }
+  // A line under the source saying whether it suits this console (issue #13): computed from the
+  // source's label and the console's firmware, so it shows only where both are known.
+  function compatibility(release) {
+    if (isPatchOnly(release)) return { tone: "warn", text: t("sources.status.patch") };
+    const console2 = consoleFirmware();
+    const need = requiredFirmware(release);
+    if (!console2 || need === null) return null;
+    if (console2.major >= need) return { tone: "ok", text: t("sources.status.works", { firmware: console2.text }) };
+    return { tone: "warn", text: t("sources.status.needs", { need: `${need}.xx`, firmware: console2.text }) };
+  }
   var SPEED = { "archive.org": "sources.speed.archive", mediafire: "sources.speed.mediafire", "overdrive cdn": "sources.cdnFastest" };
   var isOverdriveCdn = (provider) => /^overdrive\s*cdn$/i.test(provider ?? "");
   function describeSource(release) {
@@ -51,7 +69,8 @@ import { formatBytes } from '../state/size.js';
       detail: speed ? [detail2, t(speed)].filter(Boolean).join(" \xB7 ") : detail2,
       size: release.sizeBytes ? formatBytes(release.sizeBytes) : null,
       group: release.unavailableReason ? "unavailable" : reach,
-      reason: release.unavailableReason ?? null
+      reason: release.unavailableReason ?? null,
+      status: release.unavailableReason ? null : compatibility(release)
     };
   }
   var version = (value) => {
@@ -78,10 +97,15 @@ import { formatBytes } from '../state/size.js';
   var HEALTH_RANK = { ok: 0, flaky: 2 };
   var isBackport = ({ label }) => /\bback\s*port\b/i.test(label || "");
   var hostRank = ({ provider }) => isOverdriveCdn(provider) ? 0 : provider.toLowerCase() === "archive.org" ? 1 : provider.toLowerCase() === "mediafire" ? 2 : 3;
+  function tooNew(release) {
+    const console2 = consoleFirmware(), need = requiredFirmware(release);
+    return Boolean(console2) && need !== null && console2.major < need;
+  }
   var ranked = (release, index) => ({ release, index, rank: [
     isDlc(release) ? 1 : 0,
     release.unavailableReason ? 1 : 0,
     isPatchOnly(release) ? 1 : 0,
+    tooNew(release) ? 1 : 0,
     hostRank(release),
     GROUP_RANK[describeSource(release).group],
     HEALTH_RANK[release.health] ?? 1,
@@ -94,7 +118,7 @@ import { formatBytes } from '../state/size.js';
     return releases.map(ranked).sort(compare)[0]?.index ?? 0;
   }
   function fallbacks(releases, selected) {
-    return releases.map(ranked).filter(({ release, index, rank }) => index !== selected && rank[4] <= GROUP_RANK.page && equivalent(releases[selected], release)).sort(compare).map(({ release }) => release);
+    return releases.map(ranked).filter(({ release, index }) => index !== selected && GROUP_RANK[describeSource(release).group] <= GROUP_RANK.page && equivalent(releases[selected], release)).sort(compare).map(({ release }) => release);
   }
   function sourceSections(releases) {
     const sections = ["direct", "page", "browser", "dlc", "unavailable"].map((group) => ({ group, items: [] }));
@@ -108,4 +132,4 @@ import { formatBytes } from '../state/size.js';
     return sections.filter((section) => section.items.length);
   }
 
-export { describeSource, fallbacks, isOverdriveCdn, preferredRelease, sourceSections };
+export { describeSource, fallbacks, isOverdriveCdn, preferredRelease, requiredFirmware, sourceSections };

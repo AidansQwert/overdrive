@@ -15,6 +15,11 @@ import { DeviceInfo } from '@ps5-react/core';
     const match = /(\d+)\.(\d{2})/.exec(text || "");
     return match ? [Number(match[1]), Number(match[2])] : null;
   }
+  // The console's firmware for display ("13.20"), or null where it can't be read.
+  function consoleFirmware() {
+    const version = firmwareVersion();
+    return version ? { major: version[0], text: `${version[0]}.${String(version[1]).padStart(2, "0")}` } : null;
+  }
   // Unknown firmware (the desktop preview, an old runtime) keeps PKGs offered, as before.
   function fakePackagesInstall() {
     const version = firmwareVersion();
@@ -27,4 +32,4 @@ import { DeviceInfo } from '@ps5-react/core';
     return releases.map((release) => PKG_FORMATS.has(release.format) && !release.unavailableReason ? { ...release, unavailableReason: PKG_FIRMWARE_ERROR } : release);
   }
 
-export { PKG_FIRMWARE_ERROR, fakePackagesInstall, withoutUninstallablePackages };
+export { PKG_FIRMWARE_ERROR, consoleFirmware, fakePackagesInstall, withoutUninstallablePackages };
