@@ -17,6 +17,12 @@ Usage, from the repository root:
     python -P tools/import-pippo.py --pippo /tmp/pippo/exFAT.json --dry-run
     python -P tools/import-pippo.py --pippo /tmp/pippo/exFAT.json --report /tmp/pippo/report.json
     python -P tools/import-pippo.py --pippo /tmp/pippo/exFAT.json --covers
+    python -P tools/import-pippo.py --pippo /tmp/pippo/exFAT.json --shots
+
+--shots gives the games this import added the screenshots their page needs, taken
+from the Steam storefront, and from the PlayStation Store for the five titles that
+are PlayStation classics and have no Steam page. It writes app/data/pages/<id>.json
+only where that file has no screenshots yet, so it leaves a curated page alone.
 
 It needs the "cryptography" package, and Pillow only for --covers. Use -P, not -I:
 the script directory must stay off sys.path (it reads an untrusted file) while
@@ -50,6 +56,9 @@ import json
 import os
 import re
 import sys
+import time
+import urllib.error
+import urllib.parse
 import urllib.request
 
 try:
@@ -736,6 +745,151 @@ def fetch_covers(plan, covers_dir):
     return written, failed
 
 
+# --- Screenshots ------------------------------------------------------------
+
+PAGES_DIRNAME = "pages"
+SHOT_LIMIT = 3
+SHOT_WIDE = "?w=1920&thumb=false"
+SHOT_THUMB = "?w=256&thumb=false"
+STEAM_APP = "https://store.steampowered.com/api/appdetails?appids=%s&l=english"
+STORE = "https://store.playstation.com/store/api/chihiro/00_09_000/container/%s/%s/19/%s"
+PSN_CDN = "https://vulcan.dl.playstation.net/"
+PSN_IMAGE = "https://image.api.playstation.com/vulcan/"
+
+# Every game this import added, and where its screenshots come from. Steam covers
+# most of them; the five PlayStation classics have no Steam page, so they come
+# from the PlayStation Store. The token is the part of the store's own name that
+# has to match, so a wrong appid is caught instead of pasted into the catalog.
+SHOTS = {
+    "PPSA02873": ("steam", 978300, "saintsrowthethird"),        # Saints Row: The Third Remastered
+    "PPSA03706": ("steam", 1635590, "myfriendpeppapig"),        # My Friend Peppa Pig
+    "PPSA04867": ("steam", 1663640, "thelastoricru"),           # The Last Oricru
+    "PPSA05110": ("steam", 1687950, "persona5royal"),           # Persona 5 Royal
+    "PPSA16342": ("steam", 2358260, "cricket24"),               # Cricket 24
+    "PPSA17456": ("steam", 1669480, "firefightingsimulator"),   # Firefighting Simulator: Ignite
+    "PPSA18054": ("steam", 3701350, "starwarszerocompany"),     # Star Wars Zero Company
+    "PPSA18471": ("steam", 2316580, "talesofkenzera"),          # Tales of Kenzera: ZAU
+    "PPSA19733": ("steam", 1902960, "lostrecords"),             # Lost Records: Bloom & Rage
+    "PPSA20946": ("steam", 2827820, "therelic"),                # The Relic: First Guardian
+    "PPSA24040": ("steam", 3036720, "mastercollectionvol2"),    # MGS Master Collection Vol.2 bonus
+    "PPSA25427": ("steam", 2928600, "hinokamichronicles2"),     # Demon Slayer: Hinokami Chronicles 2
+    "PPSA26012": ("steam", 427410, "abioticfactor"),            # Abiotic Factor
+    "PPSA26223": ("steam", 2569760, "themound"),                # The Mound: Omen of Cthulhu
+    "PPSA27623": ("steam", 361420, "astroneer"),                # ASTRONEER
+    "PPSA30839": ("steam", 3634190, "mxgp26"),                  # MXGP 26
+    "PPSA34502": ("steam", 202970, "blackopsii"),               # Call of Duty: Black Ops II
+    "PPSA34547": ("steam", 3669870, "controlresonant"),         # CONTROL Resonant
+    "PPSA35154": ("steam", 521890, "helloneighbor"),            # Hello Neighbor
+    "PPSA35889": ("steam", 4356430, "nba2k27"),                 # NBA 2K27
+    "PPSA36257": ("steam", 1933000, "lunaabyss"),               # Luna Abyss
+    "PPSA09695": ("psn", "US", "en", "UP9000-PPSA09695_00-NPUG803290000000"),   # Daxter
+    "PPSA14325": ("psn", "US", "en", "UP9000-PPSA14325_00-NPUG803300000000"),   # Jak and Daxter
+    "PPSA14382": ("psn", "IT", "it", "EP1006-PPSA14382_00-0439646099833434"),   # Buzz Lightyear
+    "PPSA14431": ("psn", "US", "en", "UP9000-PPSA14431_00-UCUS986330000000"),   # Ratchet & Clank
+    "PPSA38272": ("psn", "US", "en", "UP0102-PPSA38272_00-CLASSICONIMUSHA0"),   # Onimusha: Dawn of Dreams
+}
+
+
+def simple(text):
+    """A name with nothing left but its letters and digits, for comparing titles."""
+    return re.sub(r"[^a-z0-9]+", "", str(text).lower())
+
+
+def fetch_json(url, attempts=3):
+    """Read a JSON document, giving the storefront a second chance after an empty answer.
+
+    Both storefronts answer an empty body when they are asked too quickly, so a
+    missing page is only believed after a couple of spaced retries.
+    """
+    note = ""
+    for attempt in range(attempts):
+        try:
+            request = urllib.request.Request(url, headers={"User-Agent": BROWSER_UA, "Accept": "*/*"})
+            with urllib.request.urlopen(request, timeout=45) as response:
+                body = response.read()
+            if body:
+                return json.loads(body.decode("utf-8")), ""
+            note = "empty answer"
+        except urllib.error.HTTPError as error:
+            note = "http %s" % error.code
+        except ValueError:
+            note = "not json"
+        except Exception as error:  # noqa: BLE001 - one unreachable page must not stop the run
+            note = type(error).__name__
+        time.sleep(2.0 * (attempt + 1))
+    return None, note
+
+
+def steam_shots(appid, token):
+    """The first screenshots of a Steam app, in the url/thumb shape the app reads."""
+    found, note = fetch_json(STEAM_APP % appid)
+    data = ((found or {}).get(str(appid)) or {}).get("data") or {}
+    if not data:
+        return [], note or "no such app"
+    if token not in simple(data.get("name")):
+        return [], "app %s is called %r" % (appid, data.get("name"))
+    shots = [{"url": shot["path_full"], "thumb": shot["path_thumbnail"]}
+             for shot in (data.get("screenshots") or [])[:SHOT_LIMIT] if shot.get("path_full")]
+    return shots, "" if shots else "no screenshots on the Steam page"
+
+
+def psn_shots(title_id, country, language, product_id):
+    """The first screenshots of a PlayStation Store product, sized like the catalog's own."""
+    if title_id not in product_id:  # the id has to name this very title
+        return [], "product id does not name %s" % title_id
+    found, note = fetch_json(STORE % (country, language, urllib.parse.quote(product_id)))
+    shots = ((found or {}).get("mediaList") or {}).get("screenshots") or []
+    result = []
+    for shot in shots[:SHOT_LIMIT]:
+        url = str(shot.get("url") or "").split("?")[0]
+        if not url:
+            continue
+        if url.startswith(PSN_CDN):  # the store CDN, through the host the app already loads
+            url = PSN_IMAGE + url[len(PSN_CDN):]
+        result.append({"url": url + SHOT_WIDE, "thumb": url + SHOT_THUMB})
+    return result, "" if result else (note or "no screenshots on the store page")
+
+
+def page_shots(path):
+    """The screenshots a page already carries, so a curated page is never overwritten."""
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as handle:
+        return json.loads(handle.read()).get("shots") or []
+
+
+def fetch_shots(data_dir):
+    """Write the page of every game this import added that has no screenshots yet."""
+    pages_dir = os.path.join(data_dir, PAGES_DIRNAME)
+    written, kept, failed = [], [], []
+    for title_id, source in sorted(SHOTS.items()):
+        path = os.path.join(pages_dir, title_id + ".json")
+        try:
+            current = page_shots(path)
+        except (OSError, ValueError) as error:
+            failed.append((title_id, "unreadable page: %s" % error))
+            continue
+        if current:
+            kept.append((title_id, len(current)))
+            continue
+        if source[0] == "steam":
+            shots, note = steam_shots(source[1], source[2])
+            origin = "steam %s" % source[1]
+        else:
+            shots, note = psn_shots(title_id, source[1], source[2], source[3])
+            origin = "store %s/%s" % (source[1], source[2])
+        if not shots:
+            failed.append((title_id, "%s: %s" % (origin, note)))
+            continue
+        page = collections.OrderedDict([("about", []), ("shots", shots), ("summary", "")])
+        body = json.dumps(page, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        with open(path, "wb") as handle:
+            handle.write(body)
+        written.append((title_id, "%s, %d screenshots" % (origin, len(shots))))
+        time.sleep(0.5)
+    return written, kept, failed
+
+
 # --- Reporting --------------------------------------------------------------
 
 
@@ -818,6 +972,8 @@ def main(argv=None):
     parser.add_argument("--ignore-expect", action="store_true", help="do not fail when the counts moved")
     parser.add_argument("--covers", action="store_true", help="also store the missing games' covers as JPEG")
     parser.add_argument("--covers-dir", help="where --covers writes (default: <repo>/covers)")
+    parser.add_argument("--shots", action="store_true",
+                        help="also give the games this import added the screenshots of their page")
     parser.add_argument("--report", help="write the run's report as JSON to this path")
     args = parser.parse_args(argv)
     if not os.path.isfile(args.pippo):
@@ -855,6 +1011,20 @@ def main(argv=None):
             print("              %s %s" % (title_id, detail))
         for title_id, source, error in failed:
             print("cover failed  %s %s: %s" % (title_id, source, error))
+
+    if args.shots:
+        if args.dry_run:
+            print("shots         dry run: %d games in the table, nothing fetched" % len(SHOTS))
+        else:
+            written, kept, failed = fetch_shots(args.data)
+            print("shots         %d pages written in %s, %d pages left alone"
+                  % (len(written), os.path.join(os.path.abspath(args.data), PAGES_DIRNAME), len(kept)))
+            for title_id, detail in written:
+                print("              %s %s" % (title_id, detail))
+            for title_id, count in kept:
+                print("              kept %s, it already has %d screenshots" % (title_id, count))
+            for title_id, detail in failed:
+                print("shot failed   %s %s" % (title_id, detail))
 
     if args.report:
         info = {key: (dict(value) if isinstance(value, collections.Counter) else value)
