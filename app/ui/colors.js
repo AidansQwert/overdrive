@@ -14,7 +14,8 @@
     accentFg: "#0d0d0f",
     // Soft status tones beside the CDN pastels: a source that suits the console, or one to look at first.
     ok: "#a7f3d0",
-    warn: "#fde68a"
+    warn: "#fde68a",
+    info: "#a5f3fc"
   };
 
 export { colors };
