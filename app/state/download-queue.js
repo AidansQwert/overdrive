@@ -193,8 +193,6 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
       const paths = job2.packages ?? [job2.downloadDestination || job2.artifact.destination];
       const backport = (path) => /backport/i.test(path);
       try {
-        // An archive can turn out to hold a PKG only once extracted (issue #6): say why it can't install.
-        if (!fakePackagesInstall()) throw new Error(PKG_FIRMWARE_ERROR);
         for (const path of [...paths.filter((path2) => !backport(path2)), ...paths.filter(backport)]) {
           job2.state = "installing";
           job2.written = 0;
@@ -223,7 +221,10 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
         notifications.show(t("downloads.notice.installed"), job2.title);
       } catch (error2) {
         job2.state = "installer-required";
-        job2.error = error2.message;
+        // The install is always tried: the firmware the title is told can be raised by the jailbreak.
+        // Refused where it reads above 11.60 (an archive can turn out to hold a PKG, issue #6), the
+        // likely reason is said instead of the service's code; a full drive still reads as one.
+        job2.error = !fakePackagesInstall() && !/space/i.test(error2.message) ? PKG_FIRMWARE_ERROR : error2.message;
         job2.message = t("downloads.installFailed");
       }
       job2.bytesPerSecond = 0;

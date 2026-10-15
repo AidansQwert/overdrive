@@ -2,6 +2,8 @@ import { DeviceInfo } from '@ps5-react/core';
 
   // Fake PKGs install only up to this firmware; above it the system refuses them, after the whole
   // download (issues #6 and #17). Version strings read like "13.200.001": major and two minor digits.
+  // What the title is told can be raised by the jailbreak (a console showing 13.20 in System Software
+  // reported 13.59), so the version only warns and explains a refusal; it never hides a source.
   var LAST_PKG_FIRMWARE = [11, 60];
   var PKG_FIRMWARE_ERROR = "Fake PKGs install only on firmware 11.60 or older. Choose another source.";
   var PKG_FORMATS = /* @__PURE__ */ new Set(["pkg", "fpkg"]);
@@ -20,16 +22,13 @@ import { DeviceInfo } from '@ps5-react/core';
     const version = firmwareVersion();
     return version ? { major: version[0], text: `${version[0]}.${String(version[1]).padStart(2, "0")}` } : null;
   }
-  // Unknown firmware (the desktop preview, an old runtime) keeps PKGs offered, as before.
+  // Unknown firmware (the desktop preview, an old runtime) counts as one that installs them.
   function fakePackagesInstall() {
     const version = firmwareVersion();
     if (!version) return true;
     const [major, minor] = version, [lastMajor, lastMinor] = LAST_PKG_FIRMWARE;
     return major < lastMajor || major === lastMajor && minor <= lastMinor;
   }
-  function withoutUninstallablePackages(releases) {
-    if (fakePackagesInstall()) return releases;
-    return releases.map((release) => PKG_FORMATS.has(release.format) && !release.unavailableReason ? { ...release, unavailableReason: PKG_FIRMWARE_ERROR } : release);
-  }
+  var isPackage = (release) => PKG_FORMATS.has(release.format);
 
-export { PKG_FIRMWARE_ERROR, consoleFirmware, fakePackagesInstall, withoutUninstallablePackages };
+export { PKG_FIRMWARE_ERROR, consoleFirmware, fakePackagesInstall, isPackage };
