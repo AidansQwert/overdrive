@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — download speed limit
+
+- Add `Downloads.setRateLimit(bytesPerSecond)` (native ABI v17, `network.setRateLimit`): every file
+  download shares the cap, and a new value applies at once, to running downloads too. A capped
+  download opens about one connection per MB/s and resumes its paused connections in turn, so none
+  sits long enough to hit the 30-second low-speed cutoff. `unlimited: true` exempts a download.
+
 ## Unreleased — comparing upscalers
 
 - `<Video compare={{upscale, split}}>` (native ABI v15, `video.setCompare`): right of `split` (0 to 1

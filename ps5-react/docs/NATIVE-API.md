@@ -155,6 +155,10 @@ include opt-in `rejectHtml`, exact `expectedBytes`, `storageRoot` identity check
 for receipt-backed SHA-256 verification of published files, and normalized
 `pieces: [{url, offset, size, sha1}]`. These options share ABI v2 on both hosts;
 there are no additional global native functions.
+`Downloads.setRateLimit(bytesPerSecond)` (ABI v17) caps what all file downloads
+receive together, 0 for no limit. It applies at once, running downloads included;
+a capped download opens about one connection per MB/s. A download enqueued with
+`unlimited: true`, such as an app's own update, is exempt.
 PS5 builds require `networking: true` and `filesystemAccess: "console"`; desktop
 networking is available by default. See [NETWORKING.md](NETWORKING.md) for
 options, resource limits, errors, lifecycle and the hardware-validation gap.
