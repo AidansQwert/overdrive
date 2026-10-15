@@ -7,7 +7,7 @@ import { INCOMPLETE_PART, STALE_PARTIAL, cause } from '../downloads/errors.js';
 import { t } from '../i18n/core.js';
 import { archivePassword } from './archive-password.js';
 import { BrowserRequired, archiveRefusal, cancellation, createSourceResolver, sourceKind, webURL } from './download-sources.js';
-import { PKG_FIRMWARE_ERROR, fakePackagesInstall } from './firmware.js';
+import { PKG_FIRMWARE_ERROR, fakePackagesInstall, isPs5Title } from './firmware.js';
 import { readJSON } from './read-json.js';
 import { mountedImages, shadowRequest, within2 } from './shadowmount.js';
 import { MARGIN2, spaceShortfall, stillNeeded } from './space.js';
@@ -224,7 +224,7 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
         // The install is always tried: the firmware the title is told can be raised by the jailbreak.
         // Refused where it reads above 11.60 (an archive can turn out to hold a PKG, issue #6), the
         // likely reason is said instead of the service's code; a full drive still reads as one.
-        job2.error = !fakePackagesInstall() && !/space/i.test(error2.message) ? PKG_FIRMWARE_ERROR : error2.message;
+        job2.error = isPs5Title(job2.gameId) && !fakePackagesInstall() && !/space/i.test(error2.message) ? PKG_FIRMWARE_ERROR : error2.message;
         job2.message = t("downloads.installFailed");
       }
       job2.bytesPerSecond = 0;

@@ -3,7 +3,7 @@
 
 import { t } from '../i18n/core.js';
 import { sourceKind } from '../state/download-sources.js';
-import { isPackage } from '../state/firmware.js';
+import { isPs5Package } from '../state/firmware.js';
 import { isPatchOnly } from '../state/release-sets.js';
 import { formatBytes } from '../state/size.js';
 
@@ -48,8 +48,9 @@ import { formatBytes } from '../state/size.js';
   // needs is shown where the player checks it themselves (game details, the download tips).
   function compatibility(release) {
     if (isPatchOnly(release)) return { tone: "warn", text: t("sources.status.patch") };
+    // A PS5 PKG's firmware limit outweighs its being a DLC: the source list has room for one line.
+    if (isPs5Package(release)) return { tone: "warn", text: t("sources.status.package") };
     if (isDlc(release)) return { tone: "info", text: t("sources.status.dlc") };
-    if (isPackage(release)) return { tone: "warn", text: t("sources.status.package") };
     return null;
   }
   var SPEED = { "archive.org": "sources.speed.archive", mediafire: "sources.speed.mediafire", "overdrive cdn": "sources.cdnFastest" };
@@ -101,7 +102,7 @@ import { formatBytes } from '../state/size.js';
     isDlc(release) ? 1 : 0,
     release.unavailableReason ? 1 : 0,
     isPatchOnly(release) ? 1 : 0,
-    isPackage(release) ? 1 : 0,
+    isPs5Package(release) ? 1 : 0,
     hostRank(release),
     GROUP_RANK[describeSource(release).group],
     HEALTH_RANK[release.health] ?? 1,

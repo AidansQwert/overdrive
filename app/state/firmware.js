@@ -5,7 +5,7 @@ import { DeviceInfo } from '@ps5-react/core';
   // What the title is told can be raised by the jailbreak (a console showing 13.20 in System Software
   // reported 13.59), so the version only warns and explains a refusal; it never hides a source.
   var LAST_PKG_FIRMWARE = [11, 60];
-  var PKG_FIRMWARE_ERROR = "Fake PKGs install only on firmware 11.60 or older. Choose another source.";
+  var PKG_FIRMWARE_ERROR = "PS5 fake PKGs install only on firmware 11.60 or older. Choose another source.";
   var PKG_FORMATS = /* @__PURE__ */ new Set(["pkg", "fpkg"]);
   function firmwareVersion() {
     let text;
@@ -30,5 +30,9 @@ import { DeviceInfo } from '@ps5-react/core';
     return major < lastMajor || major === lastMajor && minor <= lastMinor;
   }
   var isPackage = (release) => PKG_FORMATS.has(release.format);
+  // PS4 fake PKGs install on the PS5's later firmware too; the 11.60 limit is for PS5 ones (Orbit
+  // Store's notes say the same). The title ID tells them apart; the filename starts with it too.
+  var isPs5Title = (titleId) => /^PPSA/i.test(titleId || "");
+  var isPs5Package = (release) => isPackage(release) && isPs5Title(release.titleId || release.filename);
 
-export { PKG_FIRMWARE_ERROR, consoleFirmware, fakePackagesInstall, isPackage };
+export { PKG_FIRMWARE_ERROR, consoleFirmware, fakePackagesInstall, isPackage, isPs5Package, isPs5Title };
