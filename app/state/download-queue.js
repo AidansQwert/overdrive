@@ -7,6 +7,7 @@ import { INCOMPLETE_PART, STALE_PARTIAL, cause } from '../downloads/errors.js';
 import { t } from '../i18n/core.js';
 import { archivePassword } from './archive-password.js';
 import { BrowserRequired, archiveRefusal, cancellation, createSourceResolver, sourceKind, webURL } from './download-sources.js';
+import { PKG_FIRMWARE_ERROR, fakePackagesInstall } from './firmware.js';
 import { readJSON } from './read-json.js';
 import { mountedImages, shadowRequest, within2 } from './shadowmount.js';
 import { MARGIN2, spaceShortfall, stillNeeded } from './space.js';
@@ -192,6 +193,8 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
       const paths = job2.packages ?? [job2.downloadDestination || job2.artifact.destination];
       const backport = (path) => /backport/i.test(path);
       try {
+        // An archive can turn out to hold a PKG only once extracted (issue #6): say why it can't install.
+        if (!fakePackagesInstall()) throw new Error(PKG_FIRMWARE_ERROR);
         for (const path of [...paths.filter((path2) => !backport(path2)), ...paths.filter(backport)]) {
           job2.state = "installing";
           job2.written = 0;
@@ -412,6 +415,25 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
       }
       return null;
     }
+    // The extractor writes files 0666, without execute: ShadowMount mounts the folder, but its
+    // eboot.bin won't launch (CE-107750-0, issue #11) until everything is opened up, as the updater
+    // does for Overdrive's own folder. A frame every 256 entries keeps a large game from stalling the UI.
+    async function openUp(path) {
+      let count = 0;
+      const visit = async (dir2) => {
+        fs.chmod(dir2, 511);
+        for (const entry2 of fs.readDir(dir2)) {
+          if (++count % 256 === 0) await wait(0);
+          if (entry2.isDirectory) await visit(`${dir2}/${entry2.name}`);
+          else fs.chmod(`${dir2}/${entry2.name}`, 511);
+        }
+      };
+      try {
+        await visit(path);
+      } catch (error2) {
+        console.log("[download-queue] permissions not opened up:", error2.message);
+      }
+    }
     function extraction(job2, files) {
       if (!archives) throw new Error("Archive extraction requires the updated PS5 React runtime.");
       if (releasesOf) {
@@ -565,6 +587,7 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
           storageIdentity(job2);
           fs.rename(folder, destination);
           if (folder !== job2.output) await fs.removeAsync(job2.output);
+          await openUp(destination);
           job2.output = destination;
           job2.publishTo = destination;
           job2.artifact.nextAction = "shadowmount";
