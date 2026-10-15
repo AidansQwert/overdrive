@@ -613,6 +613,8 @@ const task = BrowserCapture.capture({
   suffix: '/Selected file.pkg',
   timeoutSeconds: 180,
 });
+// Anchor mode: every host whose check only the console browser passes.
+const other = BrowserCapture.capture({prefix: 'https://', suffix: '/PPSA01285', timeoutSeconds: 180});
 const off = task.subscribe(({state}) => console.log(state));
 try { const {url} = await task.done; /* Validate with HTTP before transferring. */ }
 finally { off(); }
@@ -620,16 +622,25 @@ finally { off(); }
 
 PS5-only, one capture at a time. Sends bundled `browser-capture.elf` to the
 localhost ELF loader on port 9021. The desktop returns a failed task explaining
-that a PS5 is required. The only permitted prefix is the exact Vikingfile HTTPS
-download host; suffix is `/` plus a filename of at most 160 UTF-8 bytes without
-controls, slashes, backslashes or `..`. The deadline is an integer from 1 to
-180 seconds. Snapshots have `id`, `state`, `error` and a matching `url` on
+that a PS5 is required. Two prefixes are permitted. The Vikingfile HTTPS download
+host (and its `vik1ngfile.site` alias) captures that page's own download route;
+its suffix is `/` plus the filename the page will use, and an empty filename
+accepts any safe one. The scheme alone, `https://`, is anchor mode: the suffix is
+`/` plus the game's title id of 4 to 160 bytes, and the capture returns the file
+link that carries that id in its own name, or, on a host known to serve files,
+one that names its archive freely. The last path segment alone is the name, and
+only the app's own probe decides whether a captured URL really is the file.
+Either way the suffix is at most 160 UTF-8 bytes without controls, slashes,
+backslashes or `..`, and the deadline is an integer from 1 to 180 seconds.
+Snapshots have `id`, `state`, `error` and a matching `url` on
 completion. `cancel()` shuts down the connection, stops the payload's next
 read, and rejects `done` with `AbortError`. Host exit stops and joins the worker.
 
 The user must complete the provider's verification in the system browser; the
-verified link is captured as Vikingfile's page holds it (a JSON string, slashes
-escaped), so the user need not select Download or its advertisements. This API does not bypass verification or open the page; the app
+link is captured from the browser's memory as the page makes it, so the user need
+not hunt for it. Vikingfile's own page holds it before any Download (a JSON
+string, slashes escaped); an anchored host shows it, or starts the download with
+it, only after the check, and a download the browser begins can be cancelled. This API does not bypass verification or open the page; the app
 opens it with `Linking.openURL` after submitting capture. Only a uniquely
 identified browser network process is read, with identity checked before every
 read. Scanning is limited to anonymous readable/writable nonexecutable user

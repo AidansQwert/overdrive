@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — one capture for every browser-only provider
+
+- Browser capture also takes the file link from the browser for the hosts whose check only the
+  console browser passes (LinkVault's mirror pages, Akirabox, Datanodes, Filekeeper), not just
+  Vikingfile: `prefix: 'https://'` with the game's title id as the suffix returns the file link that
+  carries that id in its own name, or, on a host known to serve files, one that names its archive
+  freely. The payload's name check reads the last path segment only, so an advertisement that hides
+  the real address in its query is not the file, and the app's one-byte range probe still decides
+  whether the captured URL is the game's own file.
+
 ## Unreleased — Vikingfile capture without the Download button
 
 - Browser capture finds the verified Vikingfile link as the page holds it once the verification

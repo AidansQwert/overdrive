@@ -53,10 +53,15 @@ int main(void) {
   char magic[8], prefix[64], suffix[162], seconds[8];
   signal(SIGPIPE, SIG_IGN);
   if (!line(magic, sizeof magic) || strcmp(magic, "BRC1") || !line(prefix, sizeof prefix) ||
-      strcmp(prefix, "https://vikingfile.com/d/") || !line(suffix, sizeof suffix) ||
-      suffix[0] != '/' || !line(seconds, sizeof seconds)) return fail("Invalid capture request.");
+      !line(suffix, sizeof suffix) || suffix[0] != '/' || !line(seconds, sizeof seconds))
+    return fail("Invalid capture request.");
+  /* A whole-scheme prefix asks for anchor mode: any file link that carries the anchor (the game's
+   * title id), or any file link on a known file host, wherever the page leads. */
+  const bool anchor = !strcmp(prefix, "https://");
+  if (!anchor && strcmp(prefix, "https://vikingfile.com/d/")) return fail("Invalid capture request.");
   const char *filename = suffix + 1;
-  if (strchr(filename, '/') || strchr(filename, '\\') || strstr(filename, "..")) return fail("Invalid filename.");
+  if ((anchor && !*filename) || strchr(filename, '/') || strchr(filename, '\\') ||
+      strstr(filename, "..")) return fail("Invalid filename.");
   char *end;
   const long timeout = strtol(seconds, &end, 10);
   if (*end || timeout < 1 || timeout > 180 || !now()) return fail("Invalid deadline.");
@@ -68,7 +73,7 @@ int main(void) {
     usleep(100000);
   }
   if (found != 1) return fail("The browser could not be identified safely. Reopen the page and retry.");
-  BrowserMatch match = {.filename = filename};
+  BrowserMatch match = {.prefix = prefix, .filename = filename, .anchor = anchor};
   ProbeReader reader = {.context = &target, .read = probe_target_read, .active = active,
     .match = browser_match, .match_context = &match, .remaining = PROBE_SESSION_BUDGET};
   ProbeResult result = PROBE_ABSENT;

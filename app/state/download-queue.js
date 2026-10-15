@@ -2,11 +2,14 @@
 // reconstructed from the esbuild bundle in eboot.bin
 // MODIFIED: an Archive.org refusal fails over or fails as a dead link instead of asking for the browser.
 // MODIFIED: an archive the catalog's password doesn't open is tried with the known release passwords.
+// MODIFIED: any provider that needs the console browser (LinkVault's mirrors, Akirabox, Datanodes)
+// has its file link captured from the browser, like Vikingfile's.
 
 import { INCOMPLETE_PART, STALE_PARTIAL, cause } from '../downloads/errors.js';
 import { t } from '../i18n/core.js';
 import { archivePassword } from './archive-password.js';
 import { BrowserRequired, archiveRefusal, cancellation, createSourceResolver, sourceKind, webURL } from './download-sources.js';
+import { LINK_PREFIX, captureAnchor, validateCapturedLink } from './browser-links.js';
 import { PKG_FIRMWARE_ERROR, fakePackagesInstall, isPs5Title } from './firmware.js';
 import { readJSON } from './read-json.js';
 import { mountedImages, shadowRequest, within2 } from './shadowmount.js';
@@ -1036,6 +1039,7 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
       }
       delete job2.captureState;
       delete job2.captureError;
+      delete job2.captureMode;
     }
     function continueJob(job2, url, verifiedOptions) {
       if (job2.state !== "awaiting-browser" || active2?.job === job2) return;
@@ -1074,6 +1078,52 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
         console.log("[browser-capture] link captured; validating one-byte range");
         const validated = await validateVikingCapture(http, result.url, linkPage ? capturedVikingFile(result.url, metadata) : metadata, session.cancel.signal);
         if (!current()) return;
+        source2.sizeBytes = validated.expectedBytes;
+        if (!job2.parts) job2.total = validated.expectedBytes;
+        notifications.show(t("downloads.notice.captured"), job2.title);
+        console.log("[browser-capture] file validated; handing off to queue");
+        handingOff = true;
+        continueJob(job2, validated.url, {
+          url: validated.url,
+          expectedBytes: validated.expectedBytes,
+          sha256: source2.sha256 || void 0,
+          rejectHtml: true
+        });
+        console.log("[browser-capture] handoff finished; state:", job2.state);
+      } catch (error2) {
+        if (!current() && !(handingOff && jobs.includes(job2) && job2.state === "queued" && active2?.job !== job2)) return;
+        console.log("[browser-capture] failed:", error2.message);
+        session.cancel.cancel();
+        session.task?.cancel();
+        captures.delete(job2.id);
+        job2.state = "awaiting-browser";
+        job2.captureState = "failed";
+        job2.captureError = error2.message;
+        change();
+        pump();
+      }
+    }
+    /** The same capture for a host whose check only the browser can pass: the vault's mirrors,
+     * Akirabox, Datanodes. The file link appears on the page, or when its download starts, and the
+     * browser's memory is read for it: the human never types it. */
+    async function captureBrowserLink(job2, source2, session) {
+      const current = () => captures.get(job2.id) === session && jobs.includes(job2) && job2.state === "awaiting-browser";
+      let handingOff = false;
+      try {
+        const anchor = captureAnchor(job2.titleId);
+        console.log("[browser-capture] watching any file link carrying", anchor);
+        session.task = browserCapture.capture({ prefix: LINK_PREFIX, suffix: `/${anchor}`, timeoutSeconds: 180 });
+        job2.captureState = "capturing";
+        change();
+        if (!linking?.openURL(webURL(job2.browserUrl).url)) throw new Error("The browser could not open. Retry or enter the final file link.");
+        const result = await session.task.done;
+        if (!current()) return;
+        job2.captureState = "validating";
+        change();
+        console.log("[browser-capture] link captured; validating one-byte range");
+        const validated = await validateCapturedLink(http, result.url, { anchor, sizeBytes: source2.sizeBytes || null }, session.cancel.signal);
+        if (!current()) return;
+        // The file's real length replaces the one the catalog could not know, as for Vikingfile.
         source2.sizeBytes = validated.expectedBytes;
         if (!job2.parts) job2.total = validated.expectedBytes;
         notifications.show(t("downloads.notice.captured"), job2.title);
@@ -1240,15 +1290,20 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
         const job2 = find(id);
         if (job2.state !== "awaiting-browser") return;
         const source2 = job2.parts ? job2.currentSource : job2.release;
-        if (browserCapture && (sourceKind(source2) === "vikingfile" || vikingLinkPage(source2))) {
+        const viking = sourceKind(source2) === "vikingfile" || vikingLinkPage(source2);
+        const anchor = viking ? "" : captureAnchor(job2.titleId);
+        if (browserCapture && (viking || anchor)) {
           if (captures.has(id)) return;
-          if (captures.size || active2) throw new Error("Wait for the current queue task before opening Vikingfile, so its captured link can start immediately.");
+          if (captures.size || active2) throw new Error("Wait for the current queue task before opening the download page, so its captured link can start immediately.");
           const session = { cancel: cancellation(), task: null };
           captures.set(id, session);
           job2.captureState = "preparing";
           delete job2.captureError;
+          if (viking) delete job2.captureMode;
+          else job2.captureMode = "link";
           change();
-          void captureBrowser(job2, source2, session);
+          if (viking) void captureBrowser(job2, source2, session);
+          else void captureBrowserLink(job2, source2, session);
           return;
         }
         if (!linking?.openURL(webURL(job2.browserUrl).url)) throw new Error("The browser could not open. Open this source on another device.");
