@@ -22,6 +22,11 @@ import { FocusScope, Text, View, useIsFocused } from '@ps5-react/core';
   var BODY = { fontFamily: "Inter-Regular", fontSize: 22, color: colors.muted, lineHeight: 31 };
   var TINT = { warn: [colors.warn, "#fde68a1f"], info: [colors.info, "#a5f3fc1a"] };
   var TIPS = ["firmware", "fullGame", "top", "retry"];
+  // Text wraps only at a set width here, never at flex: the dialog's 1200 px inside, less a note's
+  // 44 px badge and its gap, or half of it (less the 44 px column gap) for a tip.
+  var NOTE_TEXT = 1200 - 44 - 18;
+  var TIP_WIDTH = (1200 - 44) / 2;
+  var TIP_TEXT = TIP_WIDTH - 9 - 16;
   // The notes that apply to this source, most important first. The firmware comes from its label,
   // never from the console, which can be told a raised version.
   function notesFor(release) {
@@ -44,15 +49,16 @@ import { FocusScope, Text, View, useIsFocused } from '@ps5-react/core';
     const [ink, wash] = TINT[tone];
     return /* @__PURE__ */ (0, jsxs)(View, { style: { flexDirection: "row", alignItems: "flex-start", gap: 18 }, children: [
       /* @__PURE__ */ (0, jsx)(View, { style: { width: 44, height: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: wash }, children: /* @__PURE__ */ (0, jsx)(Icon, { name: icon, size: 24, color: ink }) }),
-      /* @__PURE__ */ (0, jsx)(Text, { style: [BODY, { flex: 1, paddingTop: 6 }], children: text })
+      /* @__PURE__ */ (0, jsx)(Text, { style: [BODY, { width: NOTE_TEXT, paddingTop: 6 }], children: text })
     ] });
   }
   function Tip({ title, body }) {
-    return /* @__PURE__ */ (0, jsxs)(View, { style: { width: 572, flexDirection: "row", alignItems: "flex-start", gap: 16 }, children: [
-      /* @__PURE__ */ (0, jsx)(View, { style: { width: 9, height: 9, borderRadius: 5, marginTop: 13, backgroundColor: colors.muted } }),
-      /* @__PURE__ */ (0, jsxs)(Text, { style: [BODY, { flex: 1 }], children: [
-        /* @__PURE__ */ (0, jsx)(Text, { style: { fontWeight: 600, color: colors.fg }, children: title }),
-        ` ${body}`
+    // The title on its own line and the line under it: short, and wrapping cleanly in any language.
+    return /* @__PURE__ */ (0, jsxs)(View, { style: { width: TIP_WIDTH, flexDirection: "row", alignItems: "flex-start", gap: 16 }, children: [
+      /* @__PURE__ */ (0, jsx)(View, { style: { width: 9, height: 9, borderRadius: 5, marginTop: 12, backgroundColor: colors.muted } }),
+      /* @__PURE__ */ (0, jsxs)(View, { style: { gap: 2 }, children: [
+        /* @__PURE__ */ (0, jsx)(Text, { style: [BODY, { width: TIP_TEXT, fontWeight: 600, color: colors.fg }], children: title }),
+        /* @__PURE__ */ (0, jsx)(Text, { style: [BODY, { width: TIP_TEXT }], children: body })
       ] })
     ] });
   }
