@@ -3,7 +3,7 @@
 
 import { t } from '../i18n/core.js';
 import { sourceKind } from '../state/download-sources.js';
-import { consoleFirmware, fakePackagesInstall, isPackage } from '../state/firmware.js';
+import { isPackage } from '../state/firmware.js';
 import { isPatchOnly } from '../state/release-sets.js';
 import { formatBytes } from '../state/size.js';
 
@@ -42,19 +42,15 @@ import { formatBytes } from '../state/size.js';
     if (!named.length) return null;
     return isBackport(release) ? Math.min(...named) : Math.max(...named);
   }
-  // A line under the source saying whether it suits this console (issue #13): computed from the
-  // source's label and the console's firmware, so it shows only where both are known. The firmware's
-  // number is never shown: the jailbreak can raise what the title is told (13.59 on a 13.20 console).
-  // A DLC or a backport patch is no game of its own, whatever firmware its label names.
+  // A line under the source for what it is beyond a game image (issue #13). Nothing reads the
+  // console's firmware here: the jailbreak can raise what the title is told (13.59 on a 13.20
+  // console), so a "works on your firmware" verdict could be wrong either way. The firmware a source
+  // needs is shown where the player checks it themselves (game details, the download tips).
   function compatibility(release) {
     if (isPatchOnly(release)) return { tone: "warn", text: t("sources.status.patch") };
     if (isDlc(release)) return { tone: "info", text: t("sources.status.dlc") };
-    if (isPackage(release) && !fakePackagesInstall()) return { tone: "warn", text: t("sources.status.package") };
-    const console2 = consoleFirmware();
-    const need = requiredFirmware(release);
-    if (!console2 || need === null) return null;
-    if (console2.major >= need) return { tone: "ok", text: t("sources.status.works") };
-    return { tone: "warn", text: t("sources.status.needs", { need: `${need}.xx` }) };
+    if (isPackage(release)) return { tone: "warn", text: t("sources.status.package") };
+    return null;
   }
   var SPEED = { "archive.org": "sources.speed.archive", mediafire: "sources.speed.mediafire", "overdrive cdn": "sources.cdnFastest" };
   var isOverdriveCdn = (provider) => /^overdrive\s*cdn$/i.test(provider ?? "");
@@ -101,18 +97,11 @@ import { formatBytes } from '../state/size.js';
   var HEALTH_RANK = { ok: 0, flaky: 2 };
   var isBackport = ({ label }) => /\bback\s*port\b/i.test(label || "");
   var hostRank = ({ provider }) => isOverdriveCdn(provider) ? 0 : provider.toLowerCase() === "archive.org" ? 1 : provider.toLowerCase() === "mediafire" ? 2 : 3;
-  // Ranked after the sources this console runs: one its firmware is below, or a fake PKG where the
-  // firmware reads above 11.60. Still offered, since that reading can be raised.
-  function tooNew(release) {
-    if (isPackage(release) && !fakePackagesInstall()) return true;
-    const console2 = consoleFirmware(), need = requiredFirmware(release);
-    return Boolean(console2) && need !== null && console2.major < need;
-  }
   var ranked = (release, index) => ({ release, index, rank: [
     isDlc(release) ? 1 : 0,
     release.unavailableReason ? 1 : 0,
     isPatchOnly(release) ? 1 : 0,
-    tooNew(release) ? 1 : 0,
+    isPackage(release) ? 1 : 0,
     hostRank(release),
     GROUP_RANK[describeSource(release).group],
     HEALTH_RANK[release.health] ?? 1,
@@ -139,4 +128,4 @@ import { formatBytes } from '../state/size.js';
     return sections.filter((section) => section.items.length);
   }
 
-export { describeSource, fallbacks, isOverdriveCdn, preferredRelease, requiredFirmware, sourceSections };
+export { describeSource, fallbacks, isDlc, isOverdriveCdn, preferredRelease, requiredFirmware, sourceSections };
