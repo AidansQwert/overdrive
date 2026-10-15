@@ -363,6 +363,7 @@
     "sources.kind.archive": "Archive",
     "sources.kind.image": "Game image",
     "sources.kind.package": "Package",
+    "sources.kind.patch": "Backport files only, not the full game",
     "sources.noDetails": "No details",
     "sources.parts": "{count, plural, one {# part} other {# parts}}",
     "sources.recommended": "Recommended",

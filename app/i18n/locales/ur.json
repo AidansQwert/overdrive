@@ -362,6 +362,7 @@
   "sources.kind.archive": "آرکائیو",
   "sources.kind.image": "گیم کی تصویر",
   "sources.kind.package": "پیکج",
+  "sources.kind.patch": "صرف بیک پورٹ فائلیں، مکمل گیم نہیں",
   "sources.noDetails": "کوئی تفصیلات نہیں",
   "sources.parts": "{count, plural, one {# حصہ} other {# حصے}}",
   "sources.recommended": "سفارش کی جاتی ہے",

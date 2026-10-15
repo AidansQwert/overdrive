@@ -362,6 +362,7 @@
   "sources.kind.archive": "সংরক্ষণাগার",
   "sources.kind.image": "গেম ইমেজ",
   "sources.kind.package": "প্যাকেজ",
+  "sources.kind.patch": "শুধু ব্যাকপোর্ট ফাইল, পুরো গেম নয়",
   "sources.noDetails": "কোনো বিবরণ নেই",
   "sources.parts": "{count, plural, one {# অংশ} other {# অংশ}}",
   "sources.recommended": "সুপারিশকৃত",

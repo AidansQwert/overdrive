@@ -362,6 +362,7 @@
   "sources.kind.archive": "Archive",
   "sources.kind.image": "Image",
   "sources.kind.package": "Paquet",
+  "sources.kind.patch": "Fichiers de backport seuls, pas le jeu complet",
   "sources.noDetails": "Aucun détail",
   "sources.parts": "{count, plural, one {# partie} many {# millions de parties} other {# parties}}",
   "sources.recommended": "Recommandé",

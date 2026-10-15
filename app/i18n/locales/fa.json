@@ -363,6 +363,7 @@
     "sources.kind.archive": "آرشیو",
     "sources.kind.image": "ایمیج بازی",
     "sources.kind.package": "پکیج",
+    "sources.kind.patch": "فقط فایل‌های بک‌پورت، نه کل بازی",
     "sources.noDetails": "بدون جزئیات",
     "sources.parts": "{count, plural, one {# بخش} other {# بخش}}",
     "sources.recommended": "پیشنهادی",

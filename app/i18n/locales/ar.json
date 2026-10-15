@@ -362,6 +362,7 @@
   "sources.kind.archive": "أرشيف",
   "sources.kind.image": "صورة اللعبة",
   "sources.kind.package": "حزمة",
+  "sources.kind.patch": "ملفات الباك بورت فقط، وليست اللعبة كاملة",
   "sources.noDetails": "لا توجد تفاصيل",
   "sources.parts": "{count, plural, zero {لا أجزاء} one {# جزء} two {# جزءان} few {# أجزاء} many {# جزء} other {# جزء}}",
   "sources.recommended": "موصى به",

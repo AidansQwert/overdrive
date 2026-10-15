@@ -362,6 +362,7 @@
   "sources.kind.archive": "压缩包",
   "sources.kind.image": "游戏镜像",
   "sources.kind.package": "安装包",
+  "sources.kind.patch": "仅含移植补丁文件，不是完整游戏",
   "sources.noDetails": "无详情",
   "sources.parts": "{count, plural, other {# 个部分}}",
   "sources.recommended": "推荐",

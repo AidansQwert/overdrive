@@ -3,6 +3,7 @@
 
 import { t } from '../i18n/core.js';
 import { sourceKind } from '../state/download-sources.js';
+import { isPatchOnly } from '../state/release-sets.js';
 import { formatBytes } from '../state/size.js';
 
   var KIND = {
@@ -40,7 +41,7 @@ import { formatBytes } from '../state/size.js';
     const detail2 = [
       edition(release),
       release.version ? `v${release.version.replace(/^v/i, "")}` : null,
-      KIND[release.format] && t(KIND[release.format]),
+      isPatchOnly(release) ? t("sources.kind.patch") : KIND[release.format] && t(KIND[release.format]),
       parts ? t("sources.parts", { count: parts }) : null
     ].filter(Boolean).join(" \xB7 ");
     const reach = access(release);
@@ -63,7 +64,7 @@ import { formatBytes } from '../state/size.js';
   var recordOf = (release) => (release.parts?.[0].sources[0] ?? release).record;
   var sameFormat = (a, b) => a.format === b.format || a.format === "binary" || b.format === "binary";
   function equivalent(a, b) {
-    if (Boolean(a.parts) !== Boolean(b.parts) || a.parts?.length !== b.parts?.length || isDlc(a) !== isDlc(b)) return false;
+    if (Boolean(a.parts) !== Boolean(b.parts) || a.parts?.length !== b.parts?.length || isDlc(a) !== isDlc(b) || isPatchOnly(a) !== isPatchOnly(b)) return false;
     if (a.sha256 && b.sha256) return a.sha256 === b.sha256;
     const [ea, eb] = [edition(a).toLowerCase(), edition(b).toLowerCase()];
     if (ea && eb && ea !== eb) return false;
@@ -80,6 +81,7 @@ import { formatBytes } from '../state/size.js';
   var ranked = (release, index) => ({ release, index, rank: [
     isDlc(release) ? 1 : 0,
     release.unavailableReason ? 1 : 0,
+    isPatchOnly(release) ? 1 : 0,
     hostRank(release),
     GROUP_RANK[describeSource(release).group],
     HEALTH_RANK[release.health] ?? 1,
@@ -92,7 +94,7 @@ import { formatBytes } from '../state/size.js';
     return releases.map(ranked).sort(compare)[0]?.index ?? 0;
   }
   function fallbacks(releases, selected) {
-    return releases.map(ranked).filter(({ release, index, rank }) => index !== selected && rank[3] <= GROUP_RANK.page && equivalent(releases[selected], release)).sort(compare).map(({ release }) => release);
+    return releases.map(ranked).filter(({ release, index, rank }) => index !== selected && rank[4] <= GROUP_RANK.page && equivalent(releases[selected], release)).sort(compare).map(({ release }) => release);
   }
   function sourceSections(releases) {
     const sections = ["direct", "page", "browser", "dlc", "unavailable"].map((group) => ({ group, items: [] }));

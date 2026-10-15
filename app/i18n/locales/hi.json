@@ -362,6 +362,7 @@
   "sources.kind.archive": "संग्रह",
   "sources.kind.image": "गेम इमेज",
   "sources.kind.package": "पैकेज",
+  "sources.kind.patch": "सिर्फ़ बैकपोर्ट फ़ाइलें, पूरा गेम नहीं",
   "sources.noDetails": "कोई विवरण नहीं",
   "sources.parts": "{count, plural, one {# भाग} other {# भाग}}",
   "sources.recommended": "सुझाया गया",
