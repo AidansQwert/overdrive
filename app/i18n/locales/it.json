@@ -13,7 +13,7 @@
   "capture.capturing": "Completa la verifica, poi aspetta",
   "capture.detail": "Non premere Download né le pubblicità: il link viene catturato da solo. Poi torna qui e il download parte in automatico. La cattura dura fino a 3 minuti.",
   "capture.link.title": "Verifica del download",
-  "capture.link.detail": "Supera il controllo dell'host nel browser: il link viene catturato da solo. Se il browser inizia a scaricare il file, annullalo e torna qui. La cattura dura fino a 3 minuti.",
+  "capture.link.detail": "Supera la verifica: il link viene preso da solo. Se parte un download, annullalo. Hai 3 minuti.",
   "capture.preparing": "Preparazione della verifica del file…",
   "capture.title": "Verifica Vikingfile",
   "capture.validating": "Controllo del file acquisito…",
