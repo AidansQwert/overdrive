@@ -179,6 +179,7 @@
   "errors.interrupted": "Interrotto alla chiusura dell'app",
   "errors.linkGone": "Il link di download non funziona più",
   "errors.notGameFile": "L'host ha inviato una pagina web invece del gioco",
+  "errors.pkgFirmware": "I fake PKG si installano solo con firmware 11.60 o precedente",
   "errors.missingParts": "In questa fonte mancano delle parti",
   "errors.needsBrowser": "Questa fonte richiede un browser web",
   "errors.noConnection": "Nessuna connessione al server",

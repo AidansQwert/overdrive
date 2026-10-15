@@ -173,6 +173,7 @@
   "errors.interrupted": "Dihentikan saat aplikasi ditutup",
   "errors.linkGone": "Tautan unduhan tidak lagi berfungsi",
   "errors.notGameFile": "Host mengirim halaman web, bukan gamenya",
+  "errors.pkgFirmware": "PKG palsu hanya bisa dipasang di firmware 11.60 atau lebih lama",
   "errors.missingParts": "Sumber ini kekurangan bagian",
   "errors.needsBrowser": "Sumber ini memerlukan browser web",
   "errors.noConnection": "Tidak ada koneksi ke server",

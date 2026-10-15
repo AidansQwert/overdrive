@@ -173,6 +173,7 @@
   "errors.interrupted": "অ্যাপ বন্ধ হওয়ার সময় থেমেছিল",
   "errors.linkGone": "ডাউনলোড লিঙ্ক আর কাজ করে না",
   "errors.notGameFile": "হোস্ট গেমের বদলে একটি ওয়েব পেজ পাঠিয়েছে",
+  "errors.pkgFirmware": "ফেক PKG শুধু ফার্মওয়্যার 11.60 বা তার আগের সংস্করণে ইনস্টল হয়",
   "errors.missingParts": "এই উৎসে কিছু অংশ নেই",
   "errors.needsBrowser": "এই উৎসের একটি ওয়েব ব্রাউজার প্রয়োজন",
   "errors.noConnection": "সার্ভারের সাথে কোনো সংযোগ নেই",

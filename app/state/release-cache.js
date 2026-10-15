@@ -1,6 +1,7 @@
 // ../pub-game-store/native/state/release-cache.js
 // reconstructed from the esbuild bundle in eboot.bin
 
+import { withoutUninstallablePackages } from './firmware.js';
 import { releaseSets } from './release-sets.js';
 
   var KEPT2 = 6;
@@ -12,7 +13,7 @@ import { releaseSets } from './release-sets.js';
       if (!releases) {
         const parsed = JSON.parse(read(file));
         if (!Array.isArray(parsed)) throw new Error("Invalid release data; rebuild the catalog.");
-        releases = releaseSets(parsed);
+        releases = withoutUninstallablePackages(releaseSets(parsed));
         if (games2.size === KEPT2) games2.delete(games2.keys().next().value);
       }
       games2.delete(file);

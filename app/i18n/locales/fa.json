@@ -174,6 +174,7 @@
     "errors.interrupted": "با بسته شدن برنامه متوقف شد",
     "errors.linkGone": "لینک دانلود دیگر کار نمی‌کند",
     "errors.notGameFile": "میزبان به جای بازی یک صفحهٔ وب فرستاد",
+    "errors.pkgFirmware": "PKGهای جعلی فقط روی فریمور 11.60 یا قدیمی‌تر نصب می‌شوند",
     "errors.missingParts": "این منبع بخش‌هایی کم دارد",
     "errors.needsBrowser": "این منبع به مرورگر وب نیاز دارد",
     "errors.noConnection": "اتصال به سرور برقرار نیست",

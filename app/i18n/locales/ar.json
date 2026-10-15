@@ -173,6 +173,7 @@
   "errors.interrupted": "توقف عند إغلاق التطبيق",
   "errors.linkGone": "رابط التحميل لم يعد يعمل",
   "errors.notGameFile": "أرسل المضيف صفحة ويب بدلاً من اللعبة",
+  "errors.pkgFirmware": "لا تُثبَّت حزم PKG المزيفة إلا على البرنامج الثابت 11.60 أو أقدم",
   "errors.missingParts": "هذا المصدر تنقصه أجزاء",
   "errors.needsBrowser": "هذا المصدر يحتاج متصفح ويب",
   "errors.noConnection": "لا يوجد اتصال بالخادم",
