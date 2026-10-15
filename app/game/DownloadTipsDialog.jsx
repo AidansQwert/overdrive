@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { describeSource, isDlc, requiredFirmware } from './sources.js';
 import { useT } from '../i18n/index.js';
 import { sourceKind } from '../state/download-sources.js';
-import { isPackage } from '../state/firmware.js';
+import { isPs5Package } from '../state/firmware.js';
 import { useNavActions } from '../state/nav.jsx';
 import { isPatchOnly } from '../state/release-sets.js';
 import { Button2 } from '../ui/Button.jsx';
@@ -28,7 +28,7 @@ import { FocusScope, Text, View, useIsFocused } from '@ps5-react/core';
     const notes = [];
     if (isDlc(release)) notes.push({ tone: "warn", icon: "package", key: "dlc" });
     if (isPatchOnly(release)) notes.push({ tone: "warn", icon: "fileMinus", key: "patch" });
-    if (isPackage(release)) notes.push({ tone: "warn", icon: "alert", key: "package" });
+    if (isPs5Package(release)) notes.push({ tone: "warn", icon: "alert", key: "package" });
     let kind = "direct";
     try {
       kind = sourceKind(release.parts?.[0]?.sources[0] ?? release);
@@ -115,11 +115,11 @@ import { FocusScope, Text, View, useIsFocused } from '@ps5-react/core';
         ] }) : null,
         /* @__PURE__ */ (0, jsxs)(View, { style: { gap: 14 }, children: [
           // Closed at first, so the dialog stays short; anyone can open it again any time.
-          /* @__PURE__ */ (0, jsx)(View, { focusKey: "tips:toggle", onPress: () => setOpen(!open), style: (_state) => [{ position: "relative", flexDirection: "row", alignItems: "center", gap: 18, borderRadius: 14, marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 12 }, _state.focused ? { backgroundColor: colors.surface2 } : null], children: /* @__PURE__ */ (0, jsx)(ToggleFace, { open }) }),
+          /* @__PURE__ */ (0, jsx)(View, { focusKey: "tips:toggle", nextFocusDown: "tips:continue", onPress: () => setOpen(!open), style: (_state) => [{ position: "relative", flexDirection: "row", alignItems: "center", gap: 18, borderRadius: 14, marginHorizontal: -16, paddingHorizontal: 16, paddingVertical: 12 }, _state.focused ? { backgroundColor: colors.surface2 } : null], children: /* @__PURE__ */ (0, jsx)(ToggleFace, { open }) }),
           open ? /* @__PURE__ */ (0, jsx)(View, { style: { flexDirection: "row", flexWrap: "wrap", rowGap: 16, columnGap: 44 }, children: TIPS.map((key) => /* @__PURE__ */ (0, jsx)(Tip, { title: t2(`tips.tip.${key}.title`), body: t2(`tips.tip.${key}.body`) }, key)) }) : null
         ] }),
         /* @__PURE__ */ (0, jsxs)(View, { style: { flexDirection: "row", alignItems: "center", gap: 18, borderTopWidth: 2, borderColor: colors.line, paddingTop: 26 }, children: [
-          /* @__PURE__ */ (0, jsx)(Button2, { variant: "primary", size: "lg", icon: "download", label: t2("tips.continue"), focusKey: "tips:continue", onPress: proceed }),
+          /* @__PURE__ */ (0, jsx)(Button2, { variant: "primary", size: "lg", icon: "download", label: t2("tips.continue"), halo: false, focusKey: "tips:continue", onPress: proceed }),
           /* @__PURE__ */ (0, jsx)(Button2, { variant: "secondary", size: "lg", icon: "layers", label: t2("tips.changeSource"), focusKey: "tips:source", onPress: pick })
         ] })
       ] }) }) })
