@@ -353,6 +353,7 @@
   "settings.title": "Réglages",
   "settings.vibration": "Vibration pendant la navigation",
   "settings.vibrationDetail": "Une légère impulsion quand vous vous déplacez, sélectionnez ou revenez",
+  "settings.vibrationOff": "Désactivée",
   "shadowMount.offAction": "Le jeu apparaît une fois ShadowMount chargé. Ajoutez-le à l'autoload du jailbreak pour qu'il reste actif.",
   "shadowMount.offTitle": "ShadowMount n'est pas lancé",
   "sort.label": "Trier",

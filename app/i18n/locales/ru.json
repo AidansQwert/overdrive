@@ -353,6 +353,7 @@
   "settings.title": "Настройки",
   "settings.vibration": "Вибрация при навигации",
   "settings.vibrationDetail": "Лёгкий отклик при перемещении, выборе и возврате",
+  "settings.vibrationOff": "Выкл.",
   "shadowMount.offAction": "Игра появится, когда вы его загрузите. Добавьте его в автозагрузку джейлбрейка, чтобы он всегда работал.",
   "shadowMount.offTitle": "ShadowMount не запущен",
   "sort.label": "Сортировка",

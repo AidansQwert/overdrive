@@ -353,6 +353,7 @@
   "settings.title": "Ajustes",
   "settings.vibration": "Vibración al navegar",
   "settings.vibrationDetail": "Un leve pulso al moverte, seleccionar y volver",
+  "settings.vibrationOff": "Apagada",
   "shadowMount.offAction": "El juego aparece cuando lo cargues. Añádelo al autoload del jailbreak para que siempre esté activo.",
   "shadowMount.offTitle": "ShadowMount no se está ejecutando",
   "sort.label": "Ordenar",

@@ -353,6 +353,7 @@
   "settings.title": "সেটিংস",
   "settings.vibration": "ব্রাউজ করার সময় কম্পন",
   "settings.vibrationDetail": "সরানো, বেছে নেওয়া ও ফিরে যাওয়ার সময় হালকা কম্পন",
+  "settings.vibrationOff": "বন্ধ",
   "shadowMount.offAction": "এটি লোড করলে গেমটি দেখা যাবে। সবসময় চালু রাখতে জেলব্রেকের অটোলোডে যোগ করুন।",
   "shadowMount.offTitle": "ShadowMount চলছে না",
   "sort.label": "বাছাই করুন",

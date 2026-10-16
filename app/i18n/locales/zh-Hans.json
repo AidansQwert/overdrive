@@ -353,6 +353,7 @@
   "settings.title": "设置",
   "settings.vibration": "浏览时振动",
   "settings.vibrationDetail": "移动、选择和返回时轻微振动",
+  "settings.vibrationOff": "关闭",
   "shadowMount.offAction": "加载 ShadowMount 后游戏才会出现。将它加入越狱的自动加载即可保持运行。",
   "shadowMount.offTitle": "ShadowMount 未运行",
   "sort.label": "排序",

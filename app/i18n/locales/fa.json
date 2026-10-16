@@ -354,6 +354,7 @@
     "settings.title": "تنظیمات",
     "settings.vibration": "لرزش هنگام مرور",
     "settings.vibrationDetail": "ضربهٔ ملایم هنگام حرکت، انتخاب و بازگشت",
+    "settings.vibrationOff": "خاموش",
     "shadowMount.offAction": "بازی وقتی بارگذاری شود ظاهر می‌شود. آن را به autoload جیلبریک اضافه کنید تا روشن بماند.",
     "shadowMount.offTitle": "ShadowMount در حال اجرا نیست",
     "sort.label": "مرتب‌سازی",

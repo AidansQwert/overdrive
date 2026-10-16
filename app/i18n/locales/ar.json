@@ -353,6 +353,7 @@
   "settings.title": "الإعدادات",
   "settings.vibration": "الاهتزاز أثناء التصفح",
   "settings.vibrationDetail": "نبضة خفيفة عند التنقل والاختيار والرجوع",
+  "settings.vibrationOff": "إيقاف",
   "shadowMount.offAction": "تظهر اللعبة بعد تحميله. أضفه إلى التحميل التلقائي لكسر الحماية ليبقى يعمل دائمًا.",
   "shadowMount.offTitle": "ShadowMount لا يعمل",
   "sort.label": "ترتيب",
