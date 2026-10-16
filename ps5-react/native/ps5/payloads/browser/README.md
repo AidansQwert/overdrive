@@ -24,6 +24,8 @@ Only the uniquely identified SceNKNetworkProcess/SceNKNetworkProc is read.
 Identity is rechecked before reads; no executable/file-backed pages, writes,
 cookies, dumps or arbitrary process selectors. Each session has a 3 GiB total
 read budget, 64 KiB reads separated by 8 ms, and a maximum 300-second deadline.
-Only a complete matching route is returned: Vikingfile's own download URL, or, in
+Before the app opens the page, a first pass reads memory without the read delay and keeps only
+64-bit fingerprints of the links already there that name no game; afterwards such a link is
+returned only when it is new. Only a complete matching route is returned: Vikingfile's own download URL, or, in
 anchor mode, a file link on a known host or one whose name carries the title id.
 Buffers are wiped.

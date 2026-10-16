@@ -9,7 +9,7 @@ import { INCOMPLETE_PART, STALE_PARTIAL, cause } from '../downloads/errors.js';
 import { t } from '../i18n/core.js';
 import { archivePassword } from './archive-password.js';
 import { BrowserRequired, archiveRefusal, cancellation, createSourceResolver, sourceKind, webURL } from './download-sources.js';
-import { LINK_PREFIX, captureAnchor, validateCapturedLink } from './browser-links.js';
+import { LINK_PREFIX, captureAnchor, linkForLog, validateCapturedLink } from './browser-links.js';
 import { PKG_FIRMWARE_ERROR, fakePackagesInstall, isPs5Title } from './firmware.js';
 import { readJSON } from './read-json.js';
 import { mountedImages, shadowRequest, within2 } from './shadowmount.js';
@@ -32,6 +32,34 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
   // A LinkVault page adds its own check and a mirror page before the host's, so a link capture gets
   // the payload's longest window.
   var LINK_CAPTURE_SECONDS = 300;
+  // The payload's first pass, before the page opens, fingerprints the links the browser already
+  // holds; the task turns "capturing" when it ends (or settles if it fails), and only then may the
+  // page open, so no link the page makes is counted as old.
+  function armedCapture(task) {
+    return new Promise((resolve) => {
+      let off = null, settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        off?.();
+        resolve();
+      };
+      off = task.subscribe((snapshot) => {
+        if (snapshot.state !== "queued") finish();
+      });
+      if (settled) off();
+      task.done.then(finish, finish);
+    });
+  }
+  // Which source opened the browser, for the log: its provider, and the vault or host it opens.
+  function sourceForLog(source2, browserUrl) {
+    let host = "?";
+    try {
+      host = webURL(browserUrl).host;
+    } catch {
+    }
+    return `${source2.provider || sourceKind(source2) || "?"} at ${host}${host.endsWith("link-vault.org") ? " (LinkVault)" : ""}`;
+  }
   // A host's web page is kilobytes; a file this big with no known headers is the game itself.
   var WEB_PAGE_BYTES = 4 * 1024 ** 2;
   function durable(fs, stateDir2) {
@@ -52,6 +80,7 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
     }).map((job2) => {
       delete job2.captureState;
       delete job2.captureError;
+      delete job2.captureFile;
       if (job2.state === "installing") return { ...job2, state: "installer-required" };
       if (job2.state === "extracting") job2.written = job2.total;
       if (job2.state === "removing") {
@@ -1046,6 +1075,7 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
       delete job2.captureState;
       delete job2.captureError;
       delete job2.captureMode;
+      delete job2.captureFile;
     }
     function continueJob(job2, url, verifiedOptions) {
       if (job2.state !== "awaiting-browser" || active2?.job === job2) return;
@@ -1072,16 +1102,19 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
         console.log(linkPage ? "[browser-capture] link page; any Vikingfile file" : "[browser-capture] reading public file metadata");
         const metadata = linkPage ? linkPageMetadata(source2) : await describeVikingCapture(http, source2, session.cancel.signal);
         if (!current()) return;
+        console.log("[browser-capture] source:", sourceForLog(source2, job2.browserUrl));
         session.task = browserCapture.capture({ prefix: VIKING_PREFIX, suffix: `/${metadata.filename}`, timeoutSeconds: 180 });
+        await armedCapture(session.task);
+        if (!current()) return;
         job2.captureState = "capturing";
         change();
-        console.log("[browser-capture] capture submitted; opening browser");
+        console.log("[browser-capture] capture armed; opening browser");
         if (!linking?.openURL(webURL(job2.browserUrl).url)) throw new Error("The browser could not open. Retry or enter the final file link.");
         const result = await session.task.done;
         if (!current()) return;
         job2.captureState = "validating";
         change();
-        console.log("[browser-capture] link captured; validating one-byte range");
+        console.log("[browser-capture] link captured:", linkForLog(result.url), "- validating one-byte range");
         const validated = await validateVikingCapture(http, result.url, linkPage ? capturedVikingFile(result.url, metadata) : metadata, session.cancel.signal);
         if (!current()) return;
         source2.sizeBytes = validated.expectedBytes;
@@ -1109,6 +1142,20 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
         pump();
       }
     }
+    // A file that names no game waits for the player's word, shown in the capture dialog.
+    function confirmCapturedFile(job2, session, found) {
+      return new Promise((resolve) => {
+        session.decide = (accepted) => {
+          delete session.decide;
+          delete job2.captureFile;
+          resolve(accepted);
+        };
+        session.cancel.signal.addEventListener("abort", () => session.decide?.(false));
+        job2.captureState = "confirm";
+        job2.captureFile = { name: found.filename, bytes: found.expectedBytes };
+        change();
+      });
+    }
     /** The same capture for a host whose check only the browser can pass: the vault's mirrors,
      * Akirabox, Datanodes. The file link appears on the page, or when its download starts, and the
      * browser's memory is read for it: the human never types it. */
@@ -1117,31 +1164,52 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
       let handingOff = false;
       try {
         const anchor = captureAnchor(job2.titleId);
-        console.log("[browser-capture] watching any file link carrying", anchor);
+        console.log("[browser-capture] source:", sourceForLog(source2, job2.browserUrl), "- watching any file link carrying", anchor);
         // A link the probe refuses (a page, an expired route) does not end the session: the payload
-        // scans on past it until the deadline, as Orbit Store 1.3.5 does, up to six refusals.
+        // scans on past it until the deadline, as Orbit Store 1.3.5 does, up to six refusals. The
+        // restart resumes from the first pass's fingerprints, so the links that appeared since stay new.
         const deadline = Date.now() + LINK_CAPTURE_SECONDS * 1e3;
         const rejected = [];
         let validated = null;
         while (!validated) {
           const seconds = Math.floor((deadline - Date.now()) / 1e3);
           if (seconds < 5) throw new Error("Captured file failed validation or expired. Reopen the page and retry.");
-          session.task = browserCapture.capture({ prefix: LINK_PREFIX, suffix: `/${anchor}`, timeoutSeconds: seconds, rejected });
+          const resume = rejected.length > 0;
+          session.task = browserCapture.capture({ prefix: LINK_PREFIX, suffix: `/${anchor}`, timeoutSeconds: seconds, rejected, resume });
+          if (!resume) {
+            await armedCapture(session.task);
+            if (!current()) return;
+            console.log("[browser-capture] capture armed; opening browser");
+            if (!linking?.openURL(webURL(job2.browserUrl).url)) throw new Error("The browser could not open. Retry or enter the final file link.");
+          }
           job2.captureState = "capturing";
           change();
-          if (!rejected.length && !linking?.openURL(webURL(job2.browserUrl).url)) throw new Error("The browser could not open. Retry or enter the final file link.");
           const result = await session.task.done;
           if (!current()) return;
           job2.captureState = "validating";
           change();
-          console.log("[browser-capture] link captured; validating one-byte range");
+          console.log("[browser-capture] link captured:", linkForLog(result.url), "- validating one-byte range");
+          let found;
           try {
-            validated = await validateCapturedLink(http, result.url, { anchor, sizeBytes: source2.sizeBytes || null }, session.cancel.signal);
+            found = await validateCapturedLink(http, result.url, { anchor, sizeBytes: source2.sizeBytes || null }, session.cancel.signal);
           } catch (error2) {
             if (!current() || rejected.length >= 6) throw error2;
-            console.log("[browser-capture] refused, scanning on:", error2.message);
+            console.log("[browser-capture] refused", linkForLog(result.url), "and scanning on:", error2.message);
             rejected.push(result.url);
+            continue;
           }
+          if (found.unbound) {
+            console.log(`[browser-capture] ${linkForLog(result.url)} names no game (${found.filename || "no file name"}, ${found.expectedBytes} bytes); asking the player`);
+            const accepted = await confirmCapturedFile(job2, session, found);
+            if (!current()) return;
+            console.log("[browser-capture] player", accepted ? "accepted it" : "refused it");
+            if (!accepted) {
+              if (rejected.length >= 6) throw new Error("None of the captured files was this game's. Reopen the page and retry.");
+              rejected.push(result.url);
+              continue;
+            }
+          }
+          validated = found;
         }
         if (!current()) return;
         // The file's real length replaces the one the catalog could not know, as for Vikingfile.
@@ -1330,6 +1398,10 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
         if (!linking?.openURL(webURL(job2.browserUrl).url)) throw new Error("The browser could not open. Open this source on another device.");
         job2.message = t("downloads.afterVerification");
         change();
+      },
+      /** The player's answer about a captured file that names no game: download it, or scan on. */
+      confirmCapturedFile(id, accepted) {
+        captures.get(id)?.decide?.(Boolean(accepted));
       },
       cancelBrowserCapture(id, { manual = false } = {}) {
         const job2 = find(id);

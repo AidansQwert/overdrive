@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — only links that appear after the capture starts
+
+- The browser's network process keeps the addresses of files it fetched earlier in memory it never
+  clears, and a capture took one of them, another game's file, the moment it started. A capture now
+  first fingerprints every link already in memory that names no game, before the app opens the page
+  (the task stays `queued` until that pass ends and logs what it found), and only a new such link is
+  taken after it. A link bound to the game, by its title id or Vikingfile's expected filename, is
+  accepted however old. `resume: true` restarts after a refused link with those fingerprints.
+
 ## Unreleased — 1fichier and Datanodes routes, and no stop on a host's own page
 
 - Anchor mode accepts the generated routes that carry no file name, adapted from Orbit Store

@@ -57,9 +57,10 @@ JSValue capture(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
   std::vector<std::string> rejected;
   if (argc > 3 && !JS_IsUndefined(argv[3]) && !links(ctx, argv[3], rejected))
     return JS_ThrowTypeError(ctx, "browser.capture: rejected links must be an array of at most 6 https:// URLs of 9..543 printable bytes");
+  const bool resume = argc > 4 && JS_ToBool(ctx, argv[4]) > 0;
   std::string error;
   const auto id = browser_capture::capture(std::move(prefix), std::move(suffix), static_cast<int>(timeout),
-                                           std::move(rejected), error);
+                                           std::move(rejected), resume, error);
   return id ? JS_NewUint32(ctx, id) : JS_ThrowPlainError(ctx, "browser.capture: %s", error.c_str());
 }
 JSValue cancel(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
@@ -83,7 +84,7 @@ JSValue poll(JSContext* ctx, JSValueConst, int, JSValueConst*) {
 }
 JSValue ps5_react_browser_capture_api(JSContext* ctx) {
   JSValue api = JS_NewObject(ctx);
-  JS_SetPropertyStr(ctx, api, "capture", JS_NewCFunction(ctx, capture, "capture", 4));
+  JS_SetPropertyStr(ctx, api, "capture", JS_NewCFunction(ctx, capture, "capture", 5));
   JS_SetPropertyStr(ctx, api, "cancel", JS_NewCFunction(ctx, cancel, "cancel", 1));
   JS_SetPropertyStr(ctx, api, "poll", JS_NewCFunction(ctx, poll, "poll", 0));
   return api;

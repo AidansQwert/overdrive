@@ -635,6 +635,15 @@ backslashes or `..`, and the deadline is an integer from 1 to 300 seconds.
 `rejected` lists up to six links the app already probed and refused (each an
 `https://` URL of at most 543 printable bytes); the scan passes over them, so a
 page that keeps a wrong link in memory does not stop the next capture on it.
+The browser's network process keeps the addresses of files it fetched earlier
+in memory it never clears, so a capture first fingerprints every link already
+there that names no game (a known host's free name, a route with no name) while
+its state is still `queued`; it turns `capturing` once that pass ends, and only a
+new such link is taken after it. The app opens the page only then. A link bound
+to the game (the title id, or Vikingfile's expected filename) is accepted however
+old. `resume: true` restarts after a refused link with the last fresh capture's
+fingerprints instead of a new pass, which would count the links that appeared
+since as already known.
 Anchor mode also accepts the generated routes with no file name of their own,
 1fichier's `a-<n>.1fichier.com/<token>` and Datanodes' `tunnel<n>.dlproxy.uk`
 gateway, and never a host's own page: LinkVault, MediaFire's `www` page, an
@@ -660,7 +669,7 @@ A captured URL may already be stale; the app must validate host, decoded
 filename, HTTP status, content type and length before starting immediately.
 Local tests and compilation do not establish console/firmware support.
 
-Native shape: `browser.capture(prefix, suffix, timeoutSeconds, rejected)` returns a task
+Native shape: `browser.capture(prefix, suffix, timeoutSeconds, rejected, resume)` returns a task
 ID; `browser.cancel(id)` requests cancellation; `browser.poll()` consumes
 terminal results. Calls submit/poll synchronously on the render thread; all
 payload transport runs on the worker.

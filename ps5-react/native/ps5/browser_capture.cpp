@@ -14,7 +14,8 @@ namespace browser_capture {
 namespace {
 struct Job {
   std::string prefix, suffix;
-  std::vector<std::string> rejected;
+  std::vector<std::string> rejected, known;
+  bool resume = false;
   int timeout = 180, socket = -1;
   Snapshot snapshot;
   std::atomic<bool> cancelled{false};
@@ -24,6 +25,9 @@ struct Job {
 std::mutex guard;
 std::shared_ptr<Job> current;
 std::uint32_t next_id = 1;
+// The fingerprints of the links the last fresh session found already in memory: a resumed capture
+// (a restart after the app refused a link) hands them back instead of fingerprinting again.
+std::vector<std::string> remembered;
 bool terminal(const std::string& state) { return state == "completed" || state == "failed" || state == "cancelled"; }
 void run(std::shared_ptr<Job> job) {
   async_log::write("[browser-capture] submitting payload, task=%u", job->snapshot.id);
@@ -32,6 +36,11 @@ void run(std::shared_ptr<Job> job) {
   std::string request = "BRC1\n" + job->prefix + "\n" + job->suffix + "\n" + std::to_string(job->timeout) + "\n" +
     std::to_string(job->rejected.size()) + "\n";
   for (const auto& url : job->rejected) request += url + "\n";
+  if (job->resume) {
+    std::lock_guard lock(guard);
+    request += "resume " + std::to_string(remembered.size()) + "\n";
+    for (const auto& print : remembered) request += print + "\n";
+  } else request += "fresh\n";
   const int socket = payload_loader::send("browser-capture.elf", request, 5'000'000, "BrowserCapture.capture", error);
   if (socket >= 0) {
     { std::lock_guard lock(job->socket_mutex); job->socket = socket; }
@@ -50,9 +59,17 @@ void run(std::shared_ptr<Job> job) {
         }
         if (line.starts_with("found ")) { url = line.substr(6); ended = true; }
         else if (line.starts_with("fail ")) { error = line.substr(5); ended = true; }
-        else if (line == "waiting") {
+        // "preparing" keeps the session alive while the payload fingerprints the links memory
+        // already holds; "armed" ends that pass, and only then does the app open the page.
+        else if (line == "preparing") {}
+        else if (line.starts_with("known ") && line.size() == 22 && job->known.size() < 4096) job->known.push_back(line.substr(6));
+        else if (line.starts_with("armed ") || line == "waiting") {
+          // poll() takes `guard` before a job's mutex, so the fingerprints are stored first.
+          if (line != "waiting" && !job->resume) { std::lock_guard remember(guard); remembered = job->known; }
           std::lock_guard lock(job->mutex);
-          if (job->snapshot.state != "capturing") async_log::write("[browser-capture] payload answering, task=%u", job->snapshot.id);
+          if (line != "waiting")
+            async_log::write("[browser-capture] payload armed, task=%u: %s", job->snapshot.id, line.c_str() + 6);
+          else if (job->snapshot.state != "capturing") async_log::write("[browser-capture] payload answering, task=%u", job->snapshot.id);
           job->snapshot.state = "capturing";
         }
         else { error = "Invalid capture response."; ended = true; }
@@ -71,12 +88,12 @@ void run(std::shared_ptr<Job> job) {
 }
 }
 std::uint32_t capture(std::string prefix, std::string suffix, int timeout, std::vector<std::string> rejected,
-                      std::string& error) {
+                      bool resume, std::string& error) {
   std::lock_guard lock(guard);
   if (current) { error = "A browser capture is already running; wait for its completion."; return 0; }
   auto job = std::make_shared<Job>();
   job->prefix = std::move(prefix); job->suffix = std::move(suffix); job->timeout = timeout;
-  job->rejected = std::move(rejected);
+  job->rejected = std::move(rejected); job->resume = resume;
   job->snapshot.id = next_id++; current = job;
   if (!job->worker.start([job] { run(job); }, 1024 * 1024)) { current.reset(); error = "Cannot start the capture thread."; return 0; }
   return job->snapshot.id;

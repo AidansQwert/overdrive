@@ -139,14 +139,14 @@ static bool host_page(const char *host, size_t length, const char *path) {
 // the real address inside its query is not the file. Only the app's range probe decides whether
 // the captured URL really is the file.
 #define BROWSER_CAPTURE_NAME_MAX 320
-bool browser_capture_anchor_url(const char *anchor, const char *url) {
+int browser_capture_anchor_url(const char *anchor, const char *url) {
   if (!anchor || !*anchor || !url || strncmp(url, "https://", 8)) return false;
   const char *host = url + 8;
   const char *slash = strchr(host, '/');
   if (!slash || slash == host) return false;
   const size_t length = (size_t)(slash - host);
   if (length > 256 || !memchr(host, '.', length) || strchr(url, '#')) return false;
-  if (opaque_file_route(host, length, slash)) return true;
+  if (opaque_file_route(host, length, slash)) return BROWSER_CAPTURE_UNBOUND;
   if (host_page(host, length, slash) || !browser_capture_file_token(url)) return false;
   /* The file's own name: the path's last segment, without the query. An advertisement that keeps
    * the real address inside its query has no file name of its own. */
@@ -163,8 +163,8 @@ bool browser_capture_anchor_url(const char *anchor, const char *url) {
     named++;
   }
   name[named] = 0;
-  if (named && browser_capture_file_token(name) && contains(name, anchor)) return true;
-  return file_host(host, length) && browser_capture_file_token(url);
+  if (named && browser_capture_file_token(name) && contains(name, anchor)) return BROWSER_CAPTURE_BOUND;
+  return file_host(host, length) && browser_capture_file_token(url) ? BROWSER_CAPTURE_UNBOUND : 0;
 }
 // An empty filename accepts any safe one: link pages don't tell which file they lead to.
 bool browser_capture_url(const char *filename, const char *url) {

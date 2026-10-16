@@ -155,6 +155,30 @@ int main(void) {
   match.rejected[1] = "https://cdn9.example.ru/b/PPSA01285.exfat"; match.rejected_count = 2;
   assert(!browser_match(&match, (const unsigned char *)two, strlen(two)));
   match.rejected_count = 0;
+  // The baseline pass only fingerprints what memory already holds; after it, those links are
+  // passed over and only a new one is taken (another game's file left from an earlier page).
+  uint64_t stale[BROWSER_CAPTURE_STALE_MAX];
+  match.stale = stale; match.stale_count = 0; match.baseline = true;
+  const char *old = "\"https://akirabox.com/download/x1/Other_Game.rar\" \"https://akirabox.com/download/x2/Third.7z\"";
+  assert(!browser_match(&match, (const unsigned char *)old, strlen(old)));
+  assert(match.stale_count == 2);
+  assert(!browser_match(&match, (const unsigned char *)old, strlen(old)));
+  assert(match.stale_count == 2);
+  match.baseline = false;
+  assert(!browser_match(&match, (const unsigned char *)old, strlen(old)));
+  const char *later = "\"https://akirabox.com/download/x1/Other_Game.rar\" \"https://akirabox.com/download/x9/PPSA01285.rar\"";
+  memset(match.url, 0, sizeof match.url);
+  assert(browser_match(&match, (const unsigned char *)later, strlen(later)));
+  assert(!strcmp(match.url, "https://akirabox.com/download/x9/PPSA01285.rar"));
+  // A link bound to the game is never fingerprinted: an old one is still this game's file.
+  const char *bound = "\"https://cdn9.example.ru/z/PPSA01285.exfat\"";
+  match.baseline = true;
+  assert(!browser_match(&match, (const unsigned char *)bound, strlen(bound)));
+  assert(match.stale_count == 2);
+  match.baseline = false;
+  memset(match.url, 0, sizeof match.url);
+  assert(browser_match(&match, (const unsigned char *)bound, strlen(bound)));
+  match.stale = NULL; match.stale_count = 0;
   // A query whose "&" the page escaped as JSON still yields the address the browser will request.
   const char *escaped = "fetch(\"https://cdn9.example.ru/9f3/PPSA01285.exfat?token=8f2a\\u0026expires=99\");";
   memset(match.url, 0, sizeof match.url);
