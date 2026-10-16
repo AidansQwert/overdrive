@@ -13,7 +13,7 @@
   "capture.capturing": "Completa la verifica, poi aspetta",
   "capture.detail": "Non premere Download né le pubblicità: il link viene preso da solo e il download parte in automatico. Hai 3 minuti.",
   "capture.link.title": "Verifica del download",
-  "capture.link.detail": "Supera la verifica: il link viene preso da solo. Se parte un download, annullalo. Hai 3 minuti.",
+  "capture.link.detail": "Supera la verifica: il link viene preso da solo. Se parte un download, annullalo. Hai 5 minuti.",
   "capture.preparing": "Preparazione della verifica del file…",
   "capture.title": "Verifica Vikingfile",
   "capture.validating": "Controllo del file acquisito…",

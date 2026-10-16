@@ -50,11 +50,19 @@ static void say(const char *kind, const char *value) {
 }
 static int fail(const char *reason) { say("fail", reason); return 1; }
 int main(void) {
-  char magic[8], prefix[64], suffix[162], seconds[8];
+  char magic[8], prefix[64], suffix[162], seconds[8], count[4];
+  static char rejected[BROWSER_CAPTURE_REJECTED_MAX][sizeof ((BrowserMatch *)0)->url];
   signal(SIGPIPE, SIG_IGN);
   if (!line(magic, sizeof magic) || strcmp(magic, "BRC1") || !line(prefix, sizeof prefix) ||
-      !line(suffix, sizeof suffix) || suffix[0] != '/' || !line(seconds, sizeof seconds))
+      !line(suffix, sizeof suffix) || suffix[0] != '/' || !line(seconds, sizeof seconds) ||
+      !line(count, sizeof count) || count[0] < '0' || count[0] > '0' + BROWSER_CAPTURE_REJECTED_MAX || count[1])
     return fail("Invalid capture request.");
+  /* Links the app already probed and refused: a page keeps them in memory, so a new scan would
+   * otherwise stop on the same one again (Orbit Store 1.3.5 keeps six). */
+  const size_t refused = (size_t)(count[0] - '0');
+  for (size_t i = 0; i < refused; i++)
+    if (!line(rejected[i], sizeof rejected[i]) || strncmp(rejected[i], "https://", 8))
+      return fail("Invalid capture request.");
   /* A whole-scheme prefix asks for anchor mode: any file link that carries the anchor (the game's
    * title id), or any file link on a known file host, wherever the page leads. */
   const bool anchor = !strcmp(prefix, "https://");
@@ -64,7 +72,7 @@ int main(void) {
       strstr(filename, "..")) return fail("Invalid filename.");
   char *end;
   const long timeout = strtol(seconds, &end, 10);
-  if (*end || timeout < 1 || timeout > 180 || !now()) return fail("Invalid deadline.");
+  if (*end || timeout < 1 || timeout > 300 || !now()) return fail("Invalid deadline.");
   ProbeTarget target = {.cancel = &cancelled, .deadline = now() + timeout};
   int found = 0;
   while (connected() && now() < target.deadline) {
@@ -73,7 +81,8 @@ int main(void) {
     usleep(100000);
   }
   if (found != 1) return fail("The browser could not be identified safely. Reopen the page and retry.");
-  BrowserMatch match = {.prefix = prefix, .filename = filename, .anchor = anchor};
+  BrowserMatch match = {.prefix = prefix, .filename = filename, .anchor = anchor, .rejected_count = refused};
+  for (size_t i = 0; i < refused; i++) match.rejected[i] = rejected[i];
   ProbeReader reader = {.context = &target, .read = probe_target_read, .active = active,
     .match = browser_match, .match_context = &match, .remaining = PROBE_SESSION_BUDGET};
   ProbeResult result = PROBE_ABSENT;
@@ -81,13 +90,13 @@ int main(void) {
     result = probe_target_scan(&target, &reader, prefix);
     if (result == PROBE_FOUND && active(&target)) {
       say("found", match.url);
-      memset(&match, 0, sizeof match);
+      memset(&match, 0, sizeof match); memset(rejected, 0, sizeof rejected);
       return 0;
     }
     if (result != PROBE_ABSENT) break;
     usleep(100000);
   }
-  memset(&match, 0, sizeof match);
+  memset(&match, 0, sizeof match); memset(rejected, 0, sizeof rejected);
   if (target.identity_changed) return fail("The browser restarted. Reopen the page and retry.");
   if (result == PROBE_INVALID) return fail("Could not read the browser memory map. Retry or enter the final file link.");
   if (!reader.readable) return fail(reader.attempted

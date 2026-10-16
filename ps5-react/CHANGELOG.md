@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — 1fichier and Datanodes routes, and no stop on a host's own page
+
+- Anchor mode accepts the generated routes that carry no file name, adapted from Orbit Store
+  1.3.5's `backend/providers.c`: 1fichier's `a-<n>.1fichier.com/<token>` and Datanodes'
+  `tunnel<n>.dlproxy.uk/<8>/<name>?sig=<signature>` gateway.
+- A host's own page is never taken for its file, even when it names the archive: LinkVault,
+  MediaFire's `www` page, an AkiraBox path outside `/download/`, Vikingfile's `/f/` and the
+  `/<12-character id>` pages of Datanodes, Filekeeper and Datavaults. A LinkVault vault lists
+  those pages, so the capture used to stop on one before the player picked a mirror.
+- `BrowserCapture.capture` takes `rejected`, up to six links the app already probed and refused;
+  the payload scans past them, so a wrong candidate no longer ends the session (Orbit Store 1.3.5
+  keeps six). The deadline may be up to 300 seconds and the read budget is 3 GiB, enough for a
+  LinkVault page's own check and mirror before the host's.
+
 ## Unreleased — one capture for every browser-only provider
 
 - Browser capture also takes the file link from the browser for the hosts whose check only the

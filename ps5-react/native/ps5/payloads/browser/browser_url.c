@@ -73,6 +73,66 @@ static bool file_host(const char *host, size_t length) {
   }
   return false;
 }
+static bool host_equals(const char *host, size_t length, const char *domain) {
+  const size_t wanted = strlen(domain);
+  if (length == wanted + 4 && !strncmp(host, "www.", 4)) host += 4, length -= 4;
+  if (length != wanted) return false;
+  for (size_t i = 0; i < wanted; i++)
+    if (folded((unsigned char)host[i]) != folded((unsigned char)domain[i])) return false;
+  return true;
+}
+static bool host_under(const char *host, size_t length, const char *domain) {
+  const size_t wanted = strlen(domain);
+  return length > wanted + 1 && host[length - wanted - 1] == '.' && host_equals(host + length - wanted, wanted, domain);
+}
+/* Generated file routes with no file name of their own (Orbit Store 1.3.5, backend/providers.c).
+ * 1fichier serves the file from a-<n>.1fichier.com/<token>; Datanodes hands some files out
+ * through its tunnel<n>.dlproxy.uk gateway, /<8>/<opaque name>?sig=<signature>. */
+static bool opaque_file_route(const char *host, size_t length, const char *path) {
+  if (host_under(host, length, "1fichier.com") && length > 15 && folded((unsigned char)host[0]) == 'a' && host[1] == '-') {
+    for (size_t i = 2; i < length - 13; i++)
+      if (!token((unsigned char)host[i]) && host[i] != '-') return false;
+    size_t size = 0;
+    for (const char *at = path + 1; *at; at++, size++)
+      if (!token((unsigned char)*at)) return false;
+    return size >= 10 && size <= 256;
+  }
+  if (host_under(host, length, "dlproxy.uk") && length > 17 && host_equals(host, 6, "tunnel")) {
+    for (size_t i = 6; i < length - 11; i++)
+      if (host[i] < '0' || host[i] > '9') return false;
+    const char *name = path + 1, *slash = strchr(name, '/'), *query = strchr(path, '?');
+    if (!slash || slash - name != 8 || !query || query < slash || memchr(slash + 1, '/', (size_t)(query - slash - 1)) ||
+        query - slash - 1 < 32 || query - slash - 1 > 1024 || strncmp(query, "?sig=", 5) || !query[5] ||
+        strchr(query, '&'))
+      return false;
+    for (const char *at = path; *at; at++)
+      if ((unsigned char)*at <= 32 || (unsigned char)*at >= 127 || *at == '\\') return false;
+    return true;
+  }
+  return false;
+}
+/* A host's own page is never its file, even when it names the archive: LinkVault's vault lists the
+ * mirrors' pages, and each page links itself. Datanodes, Filekeeper and Datavaults keep a file's
+ * page at /<12-character id>[/<name>] and serve the file from another server; MediaFire's page sits
+ * on www and the file on download<n>; AkiraBox serves its file under /download/ (Orbit Store 1.3.5). */
+static bool host_page(const char *host, size_t length, const char *path) {
+  if (host_equals(host, length, "link-vault.org") || host_under(host, length, "link-vault.org") ||
+      host_equals(host, length, "mediafire.com"))
+    return true;
+  if (host_equals(host, length, "akirabox.com") || host_equals(host, length, "akirabox.to"))
+    return strncmp(path, "/download/", 10) != 0;
+  if (host_equals(host, length, "vikingfile.com") || host_equals(host, length, "vik1ngfile.site"))
+    return !strncmp(path, "/f/", 3);
+  static const char *const pages[] = {"datanodes.to", "datanodes.co", "filekeeper.net", "datavaults.co"};
+  for (size_t i = 0; i < sizeof pages / sizeof *pages; i++) {
+    if (!host_equals(host, length, pages[i])) continue;
+    size_t id = 0;
+    while ((path[1 + id] >= 'a' && path[1 + id] <= 'z') || (path[1 + id] >= '0' && path[1 + id] <= '9')) id++;
+    const char after = path[1 + id];
+    return id == 12 && (!after || after == '/' || after == '?');
+  }
+  return false;
+}
 // Anchor mode: the app names the game's title id and the payload accepts the file link that
 // carries it, or, on a known host, a file link that names its archive freely (keeping the id
 // nowhere). The name is read from the URL's own last path segment: an advertisement that hides
@@ -85,8 +145,9 @@ bool browser_capture_anchor_url(const char *anchor, const char *url) {
   const char *slash = strchr(host, '/');
   if (!slash || slash == host) return false;
   const size_t length = (size_t)(slash - host);
-  if (length > 256 || !memchr(host, '.', length)) return false;
-  if (strchr(url, '#') || !browser_capture_file_token(url)) return false;
+  if (length > 256 || !memchr(host, '.', length) || strchr(url, '#')) return false;
+  if (opaque_file_route(host, length, slash)) return true;
+  if (host_page(host, length, slash) || !browser_capture_file_token(url)) return false;
   /* The file's own name: the path's last segment, without the query. An advertisement that keeps
    * the real address inside its query has no file name of its own. */
   const char *const path = slash;

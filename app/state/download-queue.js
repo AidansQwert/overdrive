@@ -29,6 +29,9 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
   // no staging behind, so each one costs a moment. They are checked on the console: nothing counts them.
   var KNOWN_PASSWORDS = ["DLPSGAME.COM", "[DLPSGAME.COM]", "www.DLPSGAME.COM", "SuperPSX", "downloadgameps3.com", "hako"];
   var PASSWORD_FAILURE = /archive password|passphrase/i;
+  // A LinkVault page adds its own check and a mirror page before the host's, so a link capture gets
+  // the payload's longest window.
+  var LINK_CAPTURE_SECONDS = 300;
   // A host's web page is kilobytes; a file this big with no known headers is the game itself.
   var WEB_PAGE_BYTES = 4 * 1024 ** 2;
   function durable(fs, stateDir2) {
@@ -1115,16 +1118,31 @@ import { VIKING_PREFIX, capturedVikingFile, describeVikingCapture, linkPageMetad
       try {
         const anchor = captureAnchor(job2.titleId);
         console.log("[browser-capture] watching any file link carrying", anchor);
-        session.task = browserCapture.capture({ prefix: LINK_PREFIX, suffix: `/${anchor}`, timeoutSeconds: 180 });
-        job2.captureState = "capturing";
-        change();
-        if (!linking?.openURL(webURL(job2.browserUrl).url)) throw new Error("The browser could not open. Retry or enter the final file link.");
-        const result = await session.task.done;
-        if (!current()) return;
-        job2.captureState = "validating";
-        change();
-        console.log("[browser-capture] link captured; validating one-byte range");
-        const validated = await validateCapturedLink(http, result.url, { anchor, sizeBytes: source2.sizeBytes || null }, session.cancel.signal);
+        // A link the probe refuses (a page, an expired route) does not end the session: the payload
+        // scans on past it until the deadline, as Orbit Store 1.3.5 does, up to six refusals.
+        const deadline = Date.now() + LINK_CAPTURE_SECONDS * 1e3;
+        const rejected = [];
+        let validated = null;
+        while (!validated) {
+          const seconds = Math.floor((deadline - Date.now()) / 1e3);
+          if (seconds < 5) throw new Error("Captured file failed validation or expired. Reopen the page and retry.");
+          session.task = browserCapture.capture({ prefix: LINK_PREFIX, suffix: `/${anchor}`, timeoutSeconds: seconds, rejected });
+          job2.captureState = "capturing";
+          change();
+          if (!rejected.length && !linking?.openURL(webURL(job2.browserUrl).url)) throw new Error("The browser could not open. Retry or enter the final file link.");
+          const result = await session.task.done;
+          if (!current()) return;
+          job2.captureState = "validating";
+          change();
+          console.log("[browser-capture] link captured; validating one-byte range");
+          try {
+            validated = await validateCapturedLink(http, result.url, { anchor, sizeBytes: source2.sizeBytes || null }, session.cancel.signal);
+          } catch (error2) {
+            if (!current() || rejected.length >= 6) throw error2;
+            console.log("[browser-capture] refused, scanning on:", error2.message);
+            rejected.push(result.url);
+          }
+        }
         if (!current()) return;
         // The file's real length replaces the one the catalog could not know, as for Vikingfile.
         source2.sizeBytes = validated.expectedBytes;

@@ -72,8 +72,10 @@ int main(void) {
   // title id names the file, or a known file host names it freely; a page or an advertisement that
   // merely mentions the address inside its query is never the file.
   const char *links[] = {
-    "https://datanodes.to/ywsurrfeqhj2/PPSA01285.ffpkg",
-    "https://akirabox.to/rk9zKDZRQG0l/PPSA01285-Compressed.7z",
+    "https://dl3.datanodes.to/d/9f3a2b7c/PPSA01285.ffpkg",
+    "https://akirabox.to/download/rk9zKDZRQG0l/PPSA01285-Compressed.7z",
+    "https://akirabox.com/download/rk9zKDZRQG0l/Astro+Bot+PPSA01285.rar",
+    "https://download1234.mediafire.com/abc/def/[DLPSGAME.COM]+-+03.005+PPSA01285.part01.rar",
     "https://filekeeper.net/9f3a2b/G_02225(v02.024)-[DLPSGAME.COM].rar",
     "https://cdn9.example.ru/9f3/PPSA01285.exfat?token=8f2a",
     "https://bucket.r2.cloudflarestorage.com/GAMES/PPSA01285.ffpkg",
@@ -103,7 +105,26 @@ int main(void) {
     "http://datanodes.to/x/PPSA01285.ffpkg",
     "https://datanodes.to/x/PPSA01285",
     "https://fileditchfiles.st/balpha23/9f3/PPSA01285.7z.001",
-    "https://datavaults.co/PPSA01285"
+    "https://datavaults.co/PPSA01285",
+    /* A host's own page names the archive but is never the file (LinkVault lists these pages). */
+    "https://datanodes.to/ywsurrfeqhj2/PPSA01285.ffpkg",
+    "https://www.datanodes.to/ywsurrfeqhj2/PPSA01285.part01.rar",
+    "https://filekeeper.net/jmxq02yatx3x/PPSA01285.rar",
+    "https://datavaults.co/0zjep07pfoyg/PPSA01285.rar.html",
+    "https://akirabox.to/rk9zKDZRQG0l/PPSA01285-Compressed.7z",
+    "https://www.mediafire.com/file/bjtizpldwyreiuy/[DLPSGAME.COM]+-+03.005+PPSA01285.part01.rar/file",
+    "https://link-vault.org/c/oeSJ8lHw/PPSA01285.rar",
+    "https://vikingfile.com/f/jjeEUkyPki/PPSA01285.rar",
+    /* Generated routes only on their own servers and shapes. */
+    "https://1fichier.com/?dnhw7qsrfbpobye29r8s",
+    "https://a-12.1fichier.com/c123456789?x=1",
+    "https://a-12.1fichier.com/c1234",
+    "https://a-12.1fichier.com.evil.test/c1234567890",
+    "https://b-12.1fichier.com/c1234567890",
+    "https://tunnel5.dlproxy.uk/Ab3dE6gH/0123456789abcdef0123456789abcdef",
+    "https://tunnel5.dlproxy.uk/Ab3dE6gH/0123456789abcdef0123456789abcdef?sig=a&b=c",
+    "https://tunnel5.dlproxy.uk/Ab3dE6/0123456789abcdef0123456789abcdef?sig=abc",
+    "https://tunnelx.dlproxy.uk/Ab3dE6gH/0123456789abcdef0123456789abcdef?sig=abc"
   };
   for (size_t link = 0; link < sizeof not_links / sizeof *not_links; link++)
     assert(!browser_capture_anchor_url("PPSA01285", not_links[link]));
@@ -112,12 +133,28 @@ int main(void) {
   assert(browser_capture_anchor_url("PPSA01285", "https://datanodes.to/x/PPSA01285.part01.rar?token=1"));
   assert(!browser_capture_anchor_url("PPSA01285", "https://filekeeper.net.evil.test/9f3/Atomic.rar"));
   assert(!browser_capture_anchor_url("", "https://datanodes.to/x/PPSA01285.ffpkg"));
-  // The hosted page hands out its own file address, which the anchor mode picks up before any click.
-  const char *page = "<a class=\"btn\" href=\"https:\\/\\/datanodes.to\\/ywsurrfeqhj2\\/PPSA01285.ffpkg\">";
+  /* 1fichier's and Datanodes' gateway routes carry no file name, so neither the id nor an
+   * extension is asked of them (Orbit Store 1.3.5). */
+  assert(browser_capture_anchor_url("PPSA01285", "https://a-12.1fichier.com/c1234567890abcdef"));
+  assert(browser_capture_anchor_url("PPSA01285", "https://A-7.1FICHIER.COM/c1234567890"));
+  assert(browser_capture_anchor_url("PPSA01285", "https://tunnel5.dlproxy.uk/Ab3dE6gH/0123456789abcdef0123456789abcdef?sig=k/9+Zq=="));
+  assert(browser_capture_anchor_url("PPSA01285", "https://tunnel12.dlproxy.uk/Ab3dE6gH/0123456789abcdef0123456789abcdef?sig=abc"));
+  // A page's link to itself is passed over; the file address it hands out is taken.
+  const char *page = "<a href=\"https:\\/\\/datanodes.to\\/ywsurrfeqhj2\\/PPSA01285.ffpkg\">"
+    "<a class=\"btn\" href=\"https:\\/\\/dl3.datanodes.to\\/d\\/9f3a2b7c\\/PPSA01285.ffpkg\">";
   match.prefix = "https://"; match.anchor = true; match.filename = "PPSA01285";
   memset(match.url, 0, sizeof match.url);
   assert(browser_match(&match, (const unsigned char *)page, strlen(page)));
-  assert(!strcmp(match.url, "https://datanodes.to/ywsurrfeqhj2/PPSA01285.ffpkg"));
+  assert(!strcmp(match.url, "https://dl3.datanodes.to/d/9f3a2b7c/PPSA01285.ffpkg"));
+  // A link the app already refused is scanned past, so the next candidate is returned instead.
+  const char *two = "\"https://cdn9.example.ru/a/PPSA01285.exfat\" \"https://cdn9.example.ru/b/PPSA01285.exfat\"";
+  match.rejected[0] = "https://cdn9.example.ru/a/PPSA01285.exfat"; match.rejected_count = 1;
+  memset(match.url, 0, sizeof match.url);
+  assert(browser_match(&match, (const unsigned char *)two, strlen(two)));
+  assert(!strcmp(match.url, "https://cdn9.example.ru/b/PPSA01285.exfat"));
+  match.rejected[1] = "https://cdn9.example.ru/b/PPSA01285.exfat"; match.rejected_count = 2;
+  assert(!browser_match(&match, (const unsigned char *)two, strlen(two)));
+  match.rejected_count = 0;
   // A query whose "&" the page escaped as JSON still yields the address the browser will request.
   const char *escaped = "fetch(\"https://cdn9.example.ru/9f3/PPSA01285.exfat?token=8f2a\\u0026expires=99\");";
   memset(match.url, 0, sizeof match.url);

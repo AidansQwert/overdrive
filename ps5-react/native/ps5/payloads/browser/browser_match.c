@@ -49,6 +49,11 @@ static bool next_url_char(const unsigned char *bytes, size_t length, size_t step
     *out = c;
     return true;
 }
+static bool rejected(const BrowserMatch *match, const char *candidate) {
+    for (size_t i = 0; i < match->rejected_count; i++)
+        if (!strcmp(match->rejected[i], candidate)) return true;
+    return false;
+}
 /* Reads one candidate URL after `prefix` and hands it to the mode's validator. */
 static bool scan_prefix(BrowserMatch *match, const unsigned char *bytes, size_t length,
                         const char *prefix, bool anchor) {
@@ -73,7 +78,7 @@ static bool scan_prefix(BrowserMatch *match, const unsigned char *bytes, size_t 
                     candidate[j] = 0;
                     const bool hit = anchor ? browser_capture_anchor_url(match->filename, candidate)
                                             : browser_capture_url(match->filename, candidate);
-                    if (hit) {
+                    if (hit && !rejected(match, candidate)) {
                         memcpy(match->url, candidate, j + 1);
                         return true;
                     }

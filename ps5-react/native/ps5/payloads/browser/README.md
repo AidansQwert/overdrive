@@ -16,11 +16,14 @@ button is pressed, and the scanner's overlap, read pace and session budget follo
 its `browser_scan.h`. Source bundle:
 https://github.com/saawant12/orbit-store-ps5/releases/download/v1.3.5/orbit-store-1.3.5-source-bundle.zip
 (`orbit-store-1.3.5-source.tar.gz`, backend/browser_match.c and backend/browser_scan.*).
+The same bundle's backend/providers.c gives `browser_url.c` the 1fichier and Datanodes
+gateway routes and the AkiraBox `/download/` path, and backend/browser.c the list of up to
+six refused links a session scans past.
 
 Only the uniquely identified SceNKNetworkProcess/SceNKNetworkProc is read.
 Identity is rechecked before reads; no executable/file-backed pages, writes,
-cookies, dumps or arbitrary process selectors. Each session has a 1 GiB total
-read budget, 64 KiB reads separated by 8 ms, and a maximum 180-second deadline.
+cookies, dumps or arbitrary process selectors. Each session has a 3 GiB total
+read budget, 64 KiB reads separated by 8 ms, and a maximum 300-second deadline.
 Only a complete matching route is returned: Vikingfile's own download URL, or, in
 anchor mode, a file link on a known host or one whose name carries the title id.
 Buffers are wiped.

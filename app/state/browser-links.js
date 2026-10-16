@@ -21,12 +21,33 @@ import { webURL } from './download-sources.js';
   function knownFileHost(host) {
     return FILE_HOSTS.some((domain) => host === domain || host.endsWith(`.${domain}`));
   }
+  // Generated file routes with no file name of their own (Orbit Store 1.3.5): 1fichier's
+  // a-<n>.1fichier.com/<token> and Datanodes' tunnel<n>.dlproxy.uk gateway. The payload's
+  // browser_url.c holds the same rules.
+  function opaqueFileRoute(host, path) {
+    if (/^a-[a-z0-9-]+\.1fichier\.com$/.test(host)) return /^\/[A-Za-z0-9]{10,256}$/.test(path);
+    if (/^tunnel\d+\.dlproxy\.uk$/.test(host)) return /^\/[^/?]{8}\/[^/?]{32,1024}\?sig=[^&]+$/.test(path) && /^[!-~]+$/.test(path) && !path.includes("\\");
+    return false;
+  }
+  // A host's own page is never its file, even when it names the archive: LinkVault lists the
+  // mirrors' pages and each page links itself, so a page address would end the capture early.
+  function hostPage(host, path) {
+    const bare = host.replace(/^www\./, "");
+    if (bare === "link-vault.org" || host.endsWith(".link-vault.org") || bare === "mediafire.com") return true;
+    if (bare === "akirabox.com" || bare === "akirabox.to") return !path.startsWith("/download/");
+    if (bare === "vikingfile.com" || bare === "vik1ngfile.site") return path.startsWith("/f/");
+    if (["datanodes.to", "datanodes.co", "filekeeper.net", "datavaults.co"].includes(bare)) return /^\/[a-z0-9]{12}(?:[/?]|$)/.test(path);
+    return false;
+  }
   function matchingLink(url, anchor) {
     try {
       const parsed = webURL(url);
+      const host = parsed.host.toLowerCase();
       if (!url.startsWith("https://") || parsed.origin !== `https://${parsed.host}` || url.includes("#") ||
-          !parsed.host.includes(".") || !FILE_EXTENSIONS.test(url))
+          !host.includes("."))
         return false;
+      if (opaqueFileRoute(host, parsed.path)) return true;
+      if (hostPage(host, parsed.path) || !FILE_EXTENSIONS.test(url)) return false;
       const name = parsed.path.split("?")[0].split("/").pop() || "";
       if (name && FILE_EXTENSIONS.test(name) && anchor && name.toLowerCase().includes(anchor.toLowerCase())) return true;
       return knownFileHost(parsed.host);
