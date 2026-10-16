@@ -93,7 +93,7 @@
     "downloadState.removing": "Deleting files\u2026",
     "downloadState.resolving": "Connecting\u2026",
     "downloadState.verifying": "Checking file hashes\u2026",
-    "downloads.action.continueOnPage": "Continue on game page",
+    "downloads.action.continueOnPage": "Continue",
     "downloads.action.gamePage": "Game page",
     "downloads.action.install": "Install",
     "downloads.action.pause": "Pause",
